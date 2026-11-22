@@ -1,5 +1,6 @@
 import ParticleBookIntro from "./components/ParticleBookIntro";
 import CursorParticles from "./components/CursorParticles";
+import ScrollReveal from "./components/ScrollReveal";
 
 const problems = [
   {
@@ -89,8 +90,9 @@ export default function Home() {
       </header>
 
       <main>
+        <ScrollReveal />
         <ParticleBookIntro />
-        <section className="container hero">
+        <section className="container hero" data-reveal>
           <div>
             <div className="eyebrow">Your future, figured out</div>
 
@@ -175,7 +177,7 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="container section" id="about">
+        <section className="container section" id="about" data-reveal>
           <div className="section-heading">
             <div className="eyebrow">Why Onkur exists</div>
             <h2>
@@ -200,7 +202,7 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="container section">
+        <section className="container section" data-reveal>
           <div className="section-heading">
             <div className="eyebrow">One platform, three possibilities</div>
             <h2>
@@ -228,7 +230,7 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="container section feature-section" id="discover">
+        <section className="container section feature-section" id="discover" data-reveal>
           <div>
             <div className="eyebrow">Your options, side by side</div>
             <div className="section-heading">
@@ -278,7 +280,7 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="container section" id="careers">
+        <section className="container section" id="careers" data-reveal>
           <div className="section-heading">
             <div className="eyebrow">Beyond choosing a degree</div>
             <h2>
@@ -313,7 +315,7 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="container section feature-section" id="develop">
+        <section className="container section feature-section" id="develop" data-reveal>
           <div>
             <div className="eyebrow">Growth with direction</div>
             <div className="section-heading">
@@ -356,7 +358,7 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="container section" id="connect">
+        <section className="container section" id="connect" data-reveal>
           <div className="section-heading">
             <div className="eyebrow">You don't have to do it alone</div>
             <h2>
@@ -371,7 +373,7 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="container">
+        <section className="container" data-reveal>
           <div className="cta-section">
             <div className="eyebrow">Your story starts here</div>
             <h2>
