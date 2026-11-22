@@ -308,4 +308,26 @@ export default function Home() {
         </section>
       </main>
 
-      
+      <footer className="container footer">
+        <div>
+          <a href="#" className="logo">
+            onkur<span>.</span>
+          </a>
+          <p style={{ marginTop: 12 }}>
+            Discover. Develop. Connect.
+          </p>
+          <p style={{ marginTop: 8 }}>
+            © 2026 Onkur. All rights reserved.
+          </p>
+        </div>
+
+        <div className="footer-links">
+          <a href="#discover">Discover</a>
+          <a href="#develop">Develop</a>
+          <a href="#connect">Connect</a>
+          <a href="#about">About</a>
+        </div>
+      </footer>
+    </>
+  );
+}
