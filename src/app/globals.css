@@ -435,3 +435,180 @@ button {
   color: #d3d3dc;
   font-size: 14px;
 }
+
+.check {
+  color: var(--yellow);
+}
+
+.preview-panel {
+  padding: 25px;
+  background: linear-gradient(145deg, #222332, #171820);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+}
+
+.preview-panel h3 {
+  font-size: 17px;
+  margin-bottom: 20px;
+}
+
+.progress-item {
+  margin-bottom: 19px;
+}
+
+.progress-item div:first-child {
+  display: flex;
+  justify-content: space-between;
+  color: #dedee7;
+  font-size: 12px;
+  margin-bottom: 9px;
+}
+
+.progress-track {
+  height: 7px;
+  background: #343541;
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--yellow), #e9a94c);
+  border-radius: 20px;
+}
+
+.cta-section {
+  padding: 65px 35px;
+  text-align: center;
+  background:
+    radial-gradient(ellipse at 50% 100%, rgba(119, 112, 255, 0.22), transparent 60%),
+    #191a23;
+  border: 1px solid var(--border);
+  border-radius: 22px;
+}
+
+.cta-section h2 {
+  font-size: clamp(32px, 5vw, 50px);
+  letter-spacing: -2px;
+}
+
+.cta-section h2 span {
+  color: var(--yellow);
+}
+
+.cta-section p {
+  color: var(--muted);
+  margin: 17px 0 27px;
+  line-height: 1.7;
+}
+
+.footer {
+  padding: 45px 0;
+  margin-top: 100px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  gap: 25px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.footer-links {
+  display: flex;
+  gap: 22px;
+  flex-wrap: wrap;
+}
+
+.footer a:hover {
+  color: var(--yellow);
+}
+
+@media (max-width: 850px) {
+  .nav-links {
+    display: none;
+  }
+
+  .hero {
+    grid-template-columns: 1fr;
+    padding-top: 75px;
+    gap: 30px;
+  }
+
+  .hero-visual {
+    min-height: 390px;
+  }
+
+  .feature-section {
+    grid-template-columns: 1fr;
+    gap: 35px;
+  }
+}
+
+@media (max-width: 600px) {
+  .container {
+    width: min(100% - 32px, 1160px);
+  }
+
+  .navbar {
+    height: 70px;
+  }
+
+  .nav-actions {
+    gap: 12px;
+  }
+
+  .nav-actions .login-link {
+    display: none;
+  }
+
+  .hero {
+    min-height: auto;
+    padding-top: 75px;
+    padding-bottom: 65px;
+  }
+
+  .hero h1 {
+    font-size: 49px;
+    letter-spacing: -2.8px;
+  }
+
+  .hero-description {
+    font-size: 14px;
+  }
+
+  .hero-visual {
+    min-height: 330px;
+  }
+
+  .dashboard-card {
+    padding: 15px;
+  }
+
+  .floating-note {
+    left: -5px;
+    bottom: -10px;
+  }
+
+  .problem-grid,
+  .pillar-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .section {
+    padding: 75px 0;
+  }
+
+  .footer {
+    flex-direction: column;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
