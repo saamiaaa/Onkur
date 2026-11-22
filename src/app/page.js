@@ -1,21 +1,22 @@
+
 const problems = [
   {
     number: "01",
-    title: "Opportunities are scattered.",
+    title: "Too many choices. No clear direction.",
     description:
-      "Scholarships, internships and programs are spread across countless platforms. Finding the right ones takes time.",
+      "Choosing a university, degree or career path can feel overwhelming when reliable guidance is scattered everywhere.",
   },
   {
     number: "02",
-    title: "Learning without direction.",
+    title: "Studying abroad feels complicated.",
     description:
-      "You want to build skills, but figuring out what to learn next and how to get there can be overwhelming.",
+      "Tuition fees, scholarships, admission requirements and living costs make comparing international universities difficult.",
   },
   {
     number: "03",
-    title: "Finding your people is hard.",
+    title: "Potential without a roadmap.",
     description:
-      "The right mentor, supportive community or collaborator can change your journey. Finding them shouldn't be difficult.",
+      "Knowing your dream career is only the beginning. Understanding the skills and steps needed to reach it matters too.",
   },
 ];
 
@@ -25,25 +26,42 @@ const pillars = [
     icon: "⌕",
     title: "Discover",
     description:
-      "Find scholarships, internships, programs and opportunities that match your interests and qualifications.",
-    link: "Explore opportunities",
+      "Explore universities in Bangladesh and abroad, compare degrees, discover scholarships and find career paths aligned with your interests.",
+    link: "Explore your options",
+    id: "discover",
   },
   {
     number: "02",
     icon: "✳",
     title: "Develop",
     description:
-      "Build meaningful skills, follow personalized learning roadmaps and track your progress.",
+      "Understand the skills your chosen path requires, follow personalized roadmaps and prepare for your academic and professional future.",
     link: "Build your future",
+    id: "develop",
   },
   {
     number: "03",
     icon: "◎",
     title: "Connect",
     description:
-      "Meet mentors, interact with fellow students and become part of a supportive community.",
-    link: "Find your community",
+      "Connect with mentors, university students and alumni. Share experiences, ask questions and grow with your community.",
+    link: "Find your people",
+    id: "connect",
   },
+];
+
+const features = [
+  "Explore universities in Bangladesh and overseas",
+  "Compare programs, tuition and admission requirements",
+  "Discover scholarships and financial opportunities",
+  "Explore careers based on your interests",
+];
+
+const comparison = [
+  { label: "Location", local: "Bangladesh", abroad: "International" },
+  { label: "Programs", local: "Explore degrees", abroad: "Explore degrees" },
+  { label: "Costs", local: "Tuition overview", abroad: "Tuition + living costs" },
+  { label: "Funding", local: "Scholarships", abroad: "Scholarships & aid" },
 ];
 
 export default function Home() {
@@ -52,56 +70,49 @@ export default function Home() {
       <div className="site-background" />
 
       <header className="container navbar">
-        <a href="#" className="logo">
-          onkur<span>.</span>
-        </a>
+        <a href="#" className="logo">onkur<span>.</span></a>
 
         <nav className="nav-links">
-          <a href="#discover">Discover</a>
+          <a href="#discover">Universities</a>
+          <a href="#careers">Careers</a>
           <a href="#develop">Develop</a>
           <a href="#connect">Connect</a>
-          <a href="#about">About</a>
         </nav>
 
         <div className="nav-actions">
-          <a href="/login" className="login-link">
-            Log in
-          </a>
-          <a href="/signup" className="primary-button">
-            Get Started →
-          </a>
+          <a href="/login" className="login-link">Log in</a>
+          <a href="/signup" className="primary-button">Get Started →</a>
         </div>
       </header>
 
       <main>
-
         <section className="container hero">
           <div>
-            <div className="eyebrow">A new chapter begins</div>
+            <div className="eyebrow">Your future, figured out</div>
 
             <h1>
-              Your potential
+              Not sure where
               <br />
-              has <span>no limits.</span>
+              your future <span>begins?</span>
             </h1>
 
             <p className="hero-description">
-              Discover opportunities. Build skills. Find your people.
-              One platform to help you navigate your student journey
-              and turn your ambitions into action.
+              Find the right university. Discover your career path.
+              Make your next move. Explore opportunities in Bangladesh
+              and abroad, all in one place.
             </p>
 
             <div className="hero-buttons">
-              <a href="/signup" className="primary-button">
-                Start your journey →
+              <a href="#discover" className="primary-button">
+                Find your path →
               </a>
-              <a href="#discover" className="secondary-button">
+              <a href="#about" className="secondary-button">
                 Explore Onkur ↓
               </a>
             </div>
 
             <p className="hero-note">
-              DISCOVER &nbsp; · &nbsp; DEVELOP &nbsp; · &nbsp; CONNECT
+              UNIVERSITY &nbsp; · &nbsp; CAREER &nbsp; · &nbsp; GROWTH
             </p>
           </div>
 
@@ -110,55 +121,52 @@ export default function Home() {
 
             <div className="dashboard-card">
               <div className="dashboard-top">
-                <strong>onkur. / your dashboard</strong>
-                <span className="dashboard-label">
-                  <span className="online-dot" />
-                  Your journey
-                </span>
+                <strong>onkur. / explore your future</strong>
+                <span className="dashboard-label">Discover</span>
               </div>
 
               <p className="dashboard-label" style={{ marginTop: 22 }}>
-                YOUR PERSONAL SPACE
+                YOUR UNIVERSITY EXPLORER
               </p>
 
               <h3 className="dashboard-heading">
-                Opportunities for you ✨
+                Find your possibilities ✨
               </h3>
 
               <div className="opportunity">
                 <div className="opportunity-top">
-                  <h4>AI & Machine Learning Internship</h4>
-                  <span className="match">92% match</span>
+                  <h4>Computer Science & Engineering</h4>
+                  <span className="match">Program</span>
                 </div>
-                <p>Technology · Internship · Skill development</p>
+                <p>Explore universities · Compare programs</p>
               </div>
 
               <div className="opportunity">
                 <div className="opportunity-top">
-                  <h4>Python Development Program</h4>
-                  <span className="match">87% match</span>
+                  <h4>Study Abroad</h4>
+                  <span className="match">Explore</span>
                 </div>
-                <p>Learning · Beginner friendly · Online</p>
+                <p>Tuition · Living costs · Scholarships</p>
               </div>
 
               <div className="opportunity">
                 <div className="opportunity-top">
-                  <h4>Student Research Fellowship</h4>
-                  <span className="match">84% match</span>
+                  <h4>Career Exploration</h4>
+                  <span className="match">Discover</span>
                 </div>
-                <p>Research · Student program</p>
+                <p>Interests · Skills · Career possibilities</p>
               </div>
 
               <div className="skill-row">
-                <span className="skill">Python</span>
-                <span className="skill">UI/UX</span>
-                <span className="skill">Web Development</span>
+                <span className="skill">Bangladesh</span>
+                <span className="skill">Abroad</span>
+                <span className="skill">Career paths</span>
               </div>
             </div>
 
             <div className="floating-note">
-              <strong>03</strong>
-              <p>Paths to explore</p>
+              <strong>01</strong>
+              <p>Your next chapter</p>
             </div>
           </div>
         </section>
@@ -166,15 +174,14 @@ export default function Home() {
         <section className="container section" id="about">
           <div className="section-heading">
             <div className="eyebrow">Why Onkur exists</div>
-
             <h2>
-              Being a student shouldn't mean
-              <span> figuring everything out alone.</span>
+              Your future is too important
+              <span> to figure out alone.</span>
             </h2>
-
             <p>
-              Your ambitions deserve more than scattered resources,
-              confusing roadmaps and missed connections.
+              From choosing a degree to planning a career, every
+              student deserves access to clear information and
+              meaningful guidance.
             </p>
           </div>
 
@@ -189,28 +196,22 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="container section" id="discover">
+        <section className="container section">
           <div className="section-heading">
-            <div className="eyebrow">Everything starts somewhere</div>
-
+            <div className="eyebrow">One platform, three possibilities</div>
             <h2>
-              Three pillars.
-              <span> One journey.</span>
+              Find your direction.
+              <span> Build your future.</span>
             </h2>
-
             <p>
-              Everything you need to take your next step, brought
-              together in one student-focused ecosystem.
+              From your first university search to your future career,
+              Onkur helps you navigate every step.
             </p>
           </div>
 
           <div className="pillar-grid">
             {pillars.map((pillar) => (
-              <article
-                className="pillar-card"
-                key={pillar.number}
-                id={pillar.title.toLowerCase()}
-              >
+              <article className="pillar-card" key={pillar.number} id={pillar.id}>
                 <div className="card-number">{pillar.number}</div>
                 <div className="pillar-icon">{pillar.icon}</div>
                 <h3>{pillar.title}</h3>
@@ -223,86 +224,162 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="container section feature-section">
+        <section className="container section feature-section" id="discover">
           <div>
-            <div className="eyebrow">Growth with direction</div>
-
+            <div className="eyebrow">Your options, side by side</div>
             <div className="section-heading">
               <h2>
-                Your growth,
-                <span> made visible.</span>
+                Bangladesh or
+                <span> beyond?</span>
               </h2>
-
               <p>
-                A personalized development journey that helps you
-                understand where you are, what you're learning and
-                where you can go next.
+                Explore academic opportunities locally and
+                internationally. Compare what matters before
+                making one of life's biggest decisions.
+              </p>
+            </div>
+
+            <ul className="feature-list">
+              {features.map((feature) => (
+                <li key={feature}>
+                  <span className="check">✦</span> {feature}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="preview-panel">
+            <p className="dashboard-label">UNIVERSITY EXPLORER</p>
+            <h3 style={{ marginTop: 10 }}>Explore your options</h3>
+
+            <div className="comparison-table">
+              <div className="comparison-row comparison-header">
+                <span>Explore</span>
+                <span>Local</span>
+                <span>Abroad</span>
+              </div>
+
+              {comparison.map((item) => (
+                <div className="comparison-row" key={item.label}>
+                  <span>{item.label}</span>
+                  <span>{item.local}</span>
+                  <span>{item.abroad}</span>
+                </div>
+              ))}
+            </div>
+
+            <p className="preview-caption">
+              Compare academic pathways and explore what suits your goals.
+            </p>
+          </div>
+        </section>
+
+        <section className="container section" id="careers">
+          <div className="section-heading">
+            <div className="eyebrow">Beyond choosing a degree</div>
+            <h2>
+              Don't just choose what to study.
+              <span> Discover why.</span>
+            </h2>
+            <p>
+              Explore career possibilities, understand the skills
+              different professions require and connect your
+              academic choices with long-term ambitions.
+            </p>
+          </div>
+
+          <div className="pillar-grid">
+            <article className="pillar-card">
+              <div className="pillar-icon">⌘</div>
+              <h3>Explore careers</h3>
+              <p>Discover career paths based on your interests, strengths and academic preferences.</p>
+            </article>
+
+            <article className="pillar-card">
+              <div className="pillar-icon">✳</div>
+              <h3>Understand skills</h3>
+              <p>Learn about the technical and professional skills different careers demand.</p>
+            </article>
+
+            <article className="pillar-card">
+              <div className="pillar-icon">↗</div>
+              <h3>Plan your journey</h3>
+              <p>Connect your education, learning goals and future career into a clearer roadmap.</p>
+            </article>
+          </div>
+        </section>
+
+        <section className="container section feature-section" id="develop">
+          <div>
+            <div className="eyebrow">Growth with direction</div>
+            <div className="section-heading">
+              <h2>
+                Turn your ambitions
+                <span> into action.</span>
+              </h2>
+              <p>
+                Once you find your direction, Onkur helps you
+                prepare for it with learning plans, skills and
+                meaningful progress.
               </p>
             </div>
 
             <ul className="feature-list">
               <li><span className="check">✦</span> Personalized skill roadmaps</li>
-              <li><span className="check">✦</span> Track your learning progress</li>
-              <li><span className="check">✦</span> Showcase projects and achievements</li>
-              <li><span className="check">✦</span> Discover relevant mentors</li>
+              <li><span className="check">✦</span> Academic and career preparation</li>
+              <li><span className="check">✦</span> Project and portfolio development</li>
+              <li><span className="check">✦</span> Learning progress tracking</li>
             </ul>
           </div>
 
           <div className="preview-panel">
-            <p className="dashboard-label">YOUR DEVELOPMENT ROADMAP</p>
-            <h3 style={{ marginTop: 10 }}>Your next steps</h3>
+            <p className="dashboard-label">ILLUSTRATIVE LEARNING ROADMAP</p>
+            <h3 style={{ marginTop: 10 }}>Prepare for your goals</h3>
 
-            <div className="progress-item">
-              <div><span>Python fundamentals</span><span>100%</span></div>
-              <div className="progress-track">
-                <div className="progress-fill" style={{ width: "100%" }} />
+            {[
+              { name: "Explore your interests", width: "100%", value: "Done" },
+              { name: "Research degree options", width: "70%", value: "In progress" },
+              { name: "Build relevant skills", width: "35%", value: "Starting" },
+              { name: "Prepare your portfolio", width: "10%", value: "Upcoming" },
+            ].map((item) => (
+              <div className="progress-item" key={item.name}>
+                <div><span>{item.name}</span><span>{item.value}</span></div>
+                <div className="progress-track">
+                  <div className="progress-fill" style={{ width: item.width }} />
+                </div>
               </div>
-            </div>
+            ))}
+          </div>
+        </section>
 
-            <div className="progress-item">
-              <div><span>Data analysis</span><span>70%</span></div>
-              <div className="progress-track">
-                <div className="progress-fill" style={{ width: "70%" }} />
-              </div>
-            </div>
-
-            <div className="progress-item">
-              <div><span>Machine learning</span><span>35%</span></div>
-              <div className="progress-track">
-                <div className="progress-fill" style={{ width: "35%" }} />
-              </div>
-            </div>
-
-            <div className="progress-item">
-              <div><span>Portfolio projects</span><span>10%</span></div>
-              <div className="progress-track">
-                <div className="progress-fill" style={{ width: "10%" }} />
-              </div>
-            </div>
-
-            <div className="skill-row">
-              <span className="skill">4 learning paths</span>
-              <span className="skill">Personalized plan</span>
-            </div>
+        <section className="container section" id="connect">
+          <div className="section-heading">
+            <div className="eyebrow">You don't have to do it alone</div>
+            <h2>
+              Learn from people
+              <span> who've been there.</span>
+            </h2>
+            <p>
+              Connect with mentors, university students and alumni
+              who can share experiences and help you navigate
+              your next steps.
+            </p>
           </div>
         </section>
 
         <section className="container">
           <div className="cta-section">
             <div className="eyebrow">Your story starts here</div>
-
             <h2>
               Your next chapter
               <span> starts now.</span>
             </h2>
-
             <p>
-              Don't just dream about your future.
-              Start discovering, developing and connecting.
+              Explore your possibilities. Make informed decisions.
+              Start building the future you imagine.
             </p>
-
             <a href="/signup" className="primary-button">
-              Join Onkur →
+              Find your path →
             </a>
           </div>
         </section>
@@ -310,22 +387,16 @@ export default function Home() {
 
       <footer className="container footer">
         <div>
-          <a href="#" className="logo">
-            onkur<span>.</span>
-          </a>
-          <p style={{ marginTop: 12 }}>
-            Discover. Develop. Connect.
-          </p>
-          <p style={{ marginTop: 8 }}>
-            © 2026 Onkur. All rights reserved.
-          </p>
+          <a href="#" className="logo">onkur<span>.</span></a>
+          <p style={{ marginTop: 12 }}>Find your direction. Build your future.</p>
+          <p style={{ marginTop: 8 }}>© 2026 Onkur. All rights reserved.</p>
         </div>
 
         <div className="footer-links">
-          <a href="#discover">Discover</a>
+          <a href="#discover">Universities</a>
+          <a href="#careers">Careers</a>
           <a href="#develop">Develop</a>
           <a href="#connect">Connect</a>
-          <a href="#about">About</a>
         </div>
       </footer>
     </>
