@@ -1,4 +1,5 @@
 import ParticleBookIntro from "./components/ParticleBookIntro";
+import CursorParticles from "./components/CursorParticles";
 
 const problems = [
   {
@@ -68,6 +69,7 @@ const comparison = [
 export default function Home() {
   return (
     <>
+    <CursorParticles />
       <div className="site-background" />
 
       <header className="container navbar">
