@@ -184,10 +184,16 @@ export default function CareerExplorer() {
         </div>
 
         <div className="career-hero-visual">
-          <div className="career-orbit orbit-one"></div>
-          <div className="career-orbit orbit-two"></div>
+         <div className="career-orbit orbit-one">
+          <span className="orbit-dot dot-one"></span>
+          </div>
 
-          <div className="career-center-icon">✳</div>
+        <div className="career-orbit orbit-two">
+         <span className="orbit-dot dot-two"></span>
+        </div>
+
+        <div className="career-center-glow"></div>
+         <div className="career-center-icon">✳</div>
 
           <div className="career-floating-card float-one">
             <span>💻</span>

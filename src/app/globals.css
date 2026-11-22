@@ -2601,4 +2601,111 @@ a:focus-visible {
     scroll-behavior: auto !important;
   }
 }
+/* Career orbit animation */
+
+.career-orbit {
+  animation: orbit-rotate 28s linear infinite;
+}
+
+.orbit-two {
+  animation-direction: reverse;
+  animation-duration: 20s;
+}
+
+.orbit-dot {
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  top: 50%;
+  left: -5px;
+  transform: translateY(-50%);
+  background: var(--yellow);
+  box-shadow: 0 0 14px rgba(248, 217, 67, 0.9);
+}
+
+.dot-two {
+  background: var(--violet);
+  box-shadow: 0 0 14px rgba(119, 112, 255, 0.9);
+}
+
+.career-center-glow {
+  position: absolute;
+  width: 135px;
+  height: 135px;
+  border-radius: 38px;
+  background: rgba(119, 112, 255, 0.22);
+  filter: blur(22px);
+  animation: center-glow 3s ease-in-out infinite;
+}
+
+.career-center-icon {
+  animation: center-beat 3s ease-in-out infinite;
+  transform-origin: center;
+}
+
+.career-floating-card {
+  animation: card-float 5s ease-in-out infinite;
+}
+
+.float-two {
+  animation-delay: -1.2s;
+}
+
+.float-three {
+  animation-delay: -2.4s;
+}
+
+.float-four {
+  animation-delay: -3.6s;
+}
+
+@keyframes orbit-rotate {
+  from {
+    transform: rotate(-25deg);
+  }
+  to {
+    transform: rotate(335deg);
+  }
+}
+
+@keyframes center-beat {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 20px 70px rgba(119, 112, 255, 0.25);
+  }
+  50% {
+    transform: scale(1.055);
+    box-shadow: 0 20px 85px rgba(119, 112, 255, 0.48);
+  }
+}
+
+@keyframes center-glow {
+  0%, 100% {
+    opacity: 0.35;
+    transform: scale(0.85);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.2);
+  }
+}
+
+@keyframes card-float {
+  0%, 100% {
+    translate: 0 0;
+  }
+  50% {
+    translate: 0 -7px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .career-orbit,
+  .career-center-glow,
+  .career-center-icon,
+  .career-floating-card {
+    animation: none !important;
+  }
+}
 
