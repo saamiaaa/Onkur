@@ -77,7 +77,7 @@ export default function Home() {
         <a href="#" className="logo">onkur<span>.</span></a>
 
         <nav className="nav-links">
-          <a href="#discover">Universities</a>
+          <a href="/universities">Universities</a>
           <a href="#careers">Careers</a>
           <a href="#develop">Develop</a>
           <a href="#connect">Connect</a>
@@ -399,7 +399,7 @@ export default function Home() {
         </div>
 
         <div className="footer-links">
-          <a href="#discover">Universities</a>
+          <a href="/universities">Universities</a>
           <a href="#careers">Careers</a>
           <a href="#develop">Develop</a>
           <a href="#connect">Connect</a>

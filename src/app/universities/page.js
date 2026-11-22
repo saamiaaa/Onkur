@@ -425,7 +425,12 @@ export default function UniversitiesPage() {
                 </p>
 
                 <div className="comparison-table">
-                  <div className="comparison-row comparison-header">
+                  <div
+                    className="comparison-row comparison-header"
+                      style={{
+                        gridTemplateColumns: `0.8fr repeat(${comparedUniversities.length}, minmax(0, 1fr))`,
+                      }}
+                  >
                     <span>Information</span>
                     {comparedUniversities.map((u) => (
                       <span key={u.id}>{u.shortName}</span>
@@ -438,7 +443,13 @@ export default function UniversitiesPage() {
                     ["Study levels", (u) => u.levels.join(", ")],
                     ["Subjects", (u) => u.subjects.join(", ")],
                   ].map(([label, getValue]) => (
-                    <div className="comparison-row" key={label}>
+                    <div
+                      className="comparison-row"
+                        key={label}
+                          style={{
+                            gridTemplateColumns: `0.8fr repeat(${comparedUniversities.length}, minmax(0, 1fr))`,
+                          }}
+                    >
                       <span>{label}</span>
                       {comparedUniversities.map((u) => (
                         <span key={u.id}>{getValue(u)}</span>
