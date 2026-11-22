@@ -2709,3 +2709,156 @@ a:focus-visible {
   }
 }
 
+
+.related-university-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.related-university-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px;
+  padding: 13px;
+  border-radius: 9px;
+  border: 1px solid var(--border);
+  background: #22232e;
+}
+
+.related-university-item strong,
+.related-university-item span {
+  display: block;
+}
+
+.related-university-item strong {
+  font-size: 11px;
+}
+
+.related-university-item span {
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 5px;
+}
+
+.related-university-item a {
+  color: var(--yellow);
+  font-size: 10px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.related-university-item a:hover {
+  text-decoration: underline;
+}
+
+
+/* University to career connections */
+
+.university-career-connections {
+  margin-top: 30px;
+  padding: 20px;
+  background: rgba(119, 112, 255, 0.07);
+  border: 1px solid rgba(119, 112, 255, 0.2);
+  border-radius: 13px;
+}
+
+.university-career-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 17px;
+}
+
+.university-career-heading > div > span {
+  color: var(--violet);
+  font-size: 9px;
+  letter-spacing: 1.5px;
+  font-weight: 800;
+}
+
+.university-career-heading h3 {
+  font-size: 15px;
+  margin: 7px 0 0;
+}
+
+.career-connection-icon {
+  color: var(--violet);
+  font-size: 25px;
+}
+
+.university-related-careers {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.university-related-career {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 11px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  min-width: 0;
+}
+
+.related-career-icon {
+  font-size: 19px;
+}
+
+.related-career-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.related-career-info strong,
+.related-career-info span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.related-career-info strong {
+  font-size: 10px;
+}
+
+.related-career-info span {
+  color: var(--muted);
+  font-size: 9px;
+  margin-top: 4px;
+}
+
+.university-related-career > a {
+  color: var(--yellow);
+  text-decoration: none;
+  font-size: 16px;
+}
+
+.career-connection-empty {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.7;
+}
+
+.all-careers-link {
+  display: inline-block;
+  margin-top: 17px;
+  color: var(--yellow);
+  font-size: 11px;
+  text-decoration: none;
+}
+
+.all-careers-link:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 500px) {
+  .university-related-careers {
+    grid-template-columns: 1fr;
+  }
+}

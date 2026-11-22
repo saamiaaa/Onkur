@@ -1,6 +1,6 @@
-
 "use client";
 
+import { getUniversitiesForCareer } from "../data/careerLinks";
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { careers, assessmentOptions } from "../data/careers";
@@ -548,6 +548,30 @@ export default function CareerExplorer() {
 
             <div className="career-detail-section">
               <h3>Related academic subjects</h3>
+              <div className="career-detail-section">
+  <h3>Universities to explore</h3>
+
+  {getUniversitiesForCareer(selectedCareer).length > 0 ? (
+    <div className="related-university-list">
+      {getUniversitiesForCareer(selectedCareer).map((university) => (
+        <div className="related-university-item" key={university.id}>
+          <div>
+            <strong>{university.name}</strong>
+            <span>
+              {university.city}, {university.country}
+            </span>
+          </div>
+
+          <Link href="/universities">Explore ↗</Link>
+        </div>
+      ))}
+    </div>
+  ) : (
+    <p className="career-detail-description">
+      No matching universities have been added to the directory yet.
+    </p>
+  )}
+</div>
               <div className="career-detail-tags">
                 {selectedCareer.subjects.map((subject) => (
                   <span key={subject}>{subject}</span>

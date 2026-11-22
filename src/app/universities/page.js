@@ -1,6 +1,6 @@
-
 "use client";
 
+import { getCareersForUniversity } from "../data/careerLinks";
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import universities from "../data/universities";
@@ -489,6 +489,46 @@ export default function UniversitiesPage() {
                     ))}
                   </div>
                 </div>
+
+
+<div className="university-career-connections">
+  <div className="university-career-heading">
+    <div>
+      <span>EXPLORE YOUR FUTURE</span>
+      <h3>Where could these subjects take you?</h3>
+    </div>
+    <span className="career-connection-icon">✳</span>
+  </div>
+
+  {getCareersForUniversity(selected).length > 0 ? (
+    <div className="university-related-careers">
+      {getCareersForUniversity(selected).map((career) => (
+        <div className="university-related-career" key={career.id}>
+          <div className="related-career-icon">{career.icon}</div>
+
+          <div className="related-career-info">
+            <strong>{career.title}</strong>
+            <span>{career.category}</span>
+          </div>
+
+          <Link href="/careers" aria-label={`Explore ${career.title}`}>
+            ↗
+          </Link>
+        </div>
+      ))}
+    </div>
+  ) : (
+    <p className="career-connection-empty">
+      We haven't found related career paths in our current directory.
+      Check back as we expand our information.
+    </p>
+  )}
+
+  <Link href="/careers" className="all-careers-link">
+    Explore all career paths →
+  </Link>
+</div>
+
 
                 <div className="official-info-note">
                   <strong>Admission and fee information</strong>
