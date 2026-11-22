@@ -57,3 +57,153 @@ button {
   width: min(1160px, calc(100% - 48px));
   margin: 0 auto;
 }
+
+.navbar {
+  height: 82px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+}
+
+.logo {
+  font-size: 29px;
+  font-weight: 800;
+  letter-spacing: -1.8px;
+}
+
+.logo span {
+  color: var(--yellow);
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  color: #b8b8c3;
+  font-size: 14px;
+}
+
+.nav-links a:hover {
+  color: var(--yellow);
+}
+
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  font-size: 14px;
+}
+
+.primary-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 13px 21px;
+  border-radius: 9px;
+  background: var(--yellow);
+  color: #151515;
+  font-weight: 700;
+  border: 1px solid var(--yellow);
+  transition: transform 0.2s, background 0.2s;
+}
+
+.primary-button:hover {
+  transform: translateY(-3px);
+  background: #ffe66d;
+}
+
+.secondary-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 13px 21px;
+  border-radius: 9px;
+  border: 1px solid var(--border);
+  color: var(--foreground);
+  transition: border-color 0.2s;
+}
+
+.secondary-button:hover {
+  border-color: var(--yellow);
+}
+
+.hero {
+  min-height: 660px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  gap: 50px;
+  padding-top: 65px;
+  padding-bottom: 75px;
+}
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--yellow);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 25px;
+}
+
+.eyebrow::before {
+  content: "";
+  width: 24px;
+  height: 1px;
+  background: var(--yellow);
+}
+
+.hero h1 {
+  font-size: clamp(46px, 6vw, 76px);
+  line-height: 1.06;
+  letter-spacing: -4px;
+  font-weight: 800;
+  max-width: 600px;
+}
+
+.hero h1 span {
+  color: var(--yellow);
+}
+
+.hero-description {
+  max-width: 480px;
+  color: var(--muted);
+  line-height: 1.8;
+  font-size: 16px;
+  margin: 25px 0 30px;
+}
+
+.hero-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 13px;
+}
+
+.hero-note {
+  margin-top: 34px;
+  color: #777784;
+  font-size: 12px;
+  letter-spacing: 1px;
+}
+
+.hero-visual {
+  position: relative;
+  min-height: 430px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.visual-glow {
+  position: absolute;
+  width: 330px;
+  height: 330px;
+  border-radius: 50%;
+  background: rgba(119, 112, 255, 0.19);
+  filter: blur(75px);
+}
