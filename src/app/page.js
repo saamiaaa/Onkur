@@ -1,3 +1,4 @@
+import ParticleBookIntro from "./components/ParticleBookIntro";
 
 const problems = [
   {
@@ -86,6 +87,7 @@ export default function Home() {
       </header>
 
       <main>
+        <ParticleBookIntro />
         <section className="container hero">
           <div>
             <div className="eyebrow">Your future, figured out</div>
