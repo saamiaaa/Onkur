@@ -2,7 +2,7 @@
 import "./globals.css";
 
 export const metadata = {
-  title: "Onkur — Discover. Develop. Connect.",
+  title: "Onkur",
   description:
     "Discover opportunities, develop your skills, and connect with a community that helps you grow.",
 };
