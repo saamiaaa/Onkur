@@ -1,4 +1,3 @@
-
 const express = require("express");
 const dotenv = require("dotenv");
 const cors = require("cors");
@@ -8,6 +7,7 @@ const helmet = require("helmet");
 const connectDB = require("./config/db");
 const authRoutes = require("./routes/authRoutes");
 const dashboardRoutes = require("./routes/dashboardRoutes");
+const communityRoutes = require("./routes/communityRoutes");
 
 dotenv.config();
 
@@ -28,6 +28,7 @@ app.use(cookieParser());
 
 app.use("/api/auth", authRoutes);
 app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/community", communityRoutes);
 
 app.get("/api/health", (req, res) => {
   res.status(200).json({

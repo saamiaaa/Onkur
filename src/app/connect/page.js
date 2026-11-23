@@ -7,169 +7,180 @@ import Link from "next/link";
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
-const students = [
-  {
-    id: 1,
-    name: "Ariana Rahman",
-    university: "University of Dhaka",
-    subject: "Computer Science",
-    year: "3rd Year",
-    initials: "AR",
-    color: "lavender",
-    skills: ["React", "UI Design", "Figma"],
-    mutual: 8,
-  },
-  {
-    id: 2,
-    name: "Nabil Hasan",
-    university: "BRAC University",
-    subject: "Computer Science",
-    year: "2nd Year",
-    initials: "NH",
-    color: "yellow",
-    skills: ["Python", "Machine Learning"],
-    mutual: 5,
-  },
-  {
-    id: 3,
-    name: "Mehjabin Noor",
-    university: "North South University",
-    subject: "Business Administration",
-    year: "3rd Year",
-    initials: "MN",
-    color: "pink",
-    skills: ["Marketing", "Research"],
-    mutual: 3,
-  },
-];
-
-const initialPosts = [
-  {
-    id: 1,
-    name: "Ariana Rahman",
-    initials: "AR",
-    color: "lavender",
-    university: "University of Dhaka",
-    time: "2 hours ago",
-    category: "Project Showcase",
-    title: "Finally launched my first UI/UX case study!",
-    content:
-      "After weeks of research, wireframing and countless iterations, I finally finished my first complete case study. I redesigned a local food delivery experience with accessibility and simplicity in mind. Would love to hear your feedback!",
-    tags: ["UI/UX", "Figma", "Portfolio"],
-    likes: 42,
-    comments: 12,
-    shares: 5,
-    liked: false,
-    featured: true,
-  },
-  {
-    id: 2,
-    name: "Nabil Hasan",
-    initials: "NH",
-    color: "yellow",
-    university: "BRAC University",
-    time: "4 hours ago",
-    category: "Question",
-    title: "What resources helped you get started with machine learning?",
-    content:
-      "I'm currently learning Python and exploring ML fundamentals. There are so many courses out there that I'm a little overwhelmed. I'd love recommendations from people who have actually followed a beginner-friendly roadmap.",
-    tags: ["Python", "Machine Learning", "Learning"],
-    likes: 28,
-    comments: 19,
-    shares: 2,
-    liked: false,
-  },
-  {
-    id: 3,
-    name: "Mehjabin Noor",
-    initials: "MN",
-    color: "pink",
-    university: "North South University",
-    time: "Yesterday",
-    category: "Opportunity",
-    title: "Looking for teammates for a student startup competition",
-    content:
-      "We're putting together a small interdisciplinary team for an upcoming startup competition. Looking for people interested in product design, development and business strategy. Let's build something meaningful together!",
-    tags: ["Teamwork", "Startup", "Collaboration"],
-    likes: 35,
-    comments: 8,
-    shares: 11,
-    liked: false,
-  },
-];
-
-const mentors = [
-  {
-    name: "Farhan Ahmed",
-    role: "Software Engineer",
-    company: "Tech Company",
-    initials: "FA",
-    color: "blue",
-    expertise: "Software Development",
-  },
-  {
-    name: "Nusrat Jahan",
-    role: "Product Designer",
-    company: "Design Studio",
-    initials: "NJ",
-    color: "pink",
-    expertise: "UI/UX Design",
-  },
-];
-
-const trends = [
-  { tag: "#InternshipSeason", posts: "1.2k posts" },
-  { tag: "#StudyAbroad", posts: "860 posts" },
-  { tag: "#BuildInPublic", posts: "540 posts" },
-  { tag: "#TechForGood", posts: "320 posts" },
-];
-
 const filters = ["All Posts", "Discussions", "Projects", "Opportunities"];
+
+function getInitials(name = "Onkur Student") {
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .map((word) => word[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+}
+
+function formatPostTime(date) {
+  if (!date) return "Recently";
+
+  const postDate = new Date(date);
+
+  if (Number.isNaN(postDate.getTime())) return "Recently";
+
+  const difference = Math.max(0, Date.now() - postDate.getTime());
+  const minutes = Math.floor(difference / 60000);
+  const hours = Math.floor(minutes / 60);
+  const days = Math.floor(hours / 24);
+
+  if (minutes < 1) return "Just now";
+  if (minutes < 60) return `${minutes} minutes ago`;
+  if (hours < 24) return `${hours} hours ago`;
+  if (days === 1) return "Yesterday";
+  if (days < 7) return `${days} days ago`;
+
+  return postDate.toLocaleDateString();
+}
+
+function normalizePost(post) {
+  return {
+    ...post,
+    id: String(post.id || post._id),
+    name: post.name || "Onkur Student",
+    university: post.university || "University not added",
+    initials: post.initials || getInitials(post.name),
+    color: post.color || "violet",
+    title: post.title || "",
+    content: post.content || "",
+    category: post.category || "Discussion",
+    tags: Array.isArray(post.tags) ? post.tags : [],
+    likes: Number(post.likes) || 0,
+    liked: Boolean(post.liked),
+    comments: Number(post.comments) || 0,
+    shares: Number(post.shares) || 0,
+    time: post.time || post.createdAt,
+  };
+}
 
 export default function ConnectPage() {
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  const [posts, setPosts] = useState(initialPosts);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [posts, setPosts] = useState([]);
+
+  const [isLoadingPosts, setIsLoadingPosts] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [likingPostId, setLikingPostId] = useState(null);
+
   const [activeFilter, setActiveFilter] = useState("All Posts");
   const [search, setSearch] = useState("");
-  const [following, setFollowing] = useState([]);
-  const [connected, setConnected] = useState([]);
-  const [commenting, setCommenting] = useState(null);
-  const [commentText, setCommentText] = useState("");
   const [showComposer, setShowComposer] = useState(false);
   const [newPost, setNewPost] = useState("");
   const [activeTab, setActiveTab] = useState("Feed");
   const [notice, setNotice] = useState("");
+  const [error, setError] = useState("");
 
-  // Check whether the user is signed in.
+  const userName = currentUser?.fullName || "Onkur Student";
+  const userUniversity =
+    currentUser?.university || "University not added";
+  const userInitials = getInitials(userName);
+
+  function showNotice(message) {
+    setNotice(message);
+    setTimeout(() => setNotice(""), 3000);
+  }
+
+  async function loadCommunityPosts() {
+    setIsLoadingPosts(true);
+    setError("");
+
+    try {
+      const response = await fetch(`${API_URL}/community/posts`, {
+        method: "GET",
+        credentials: "include",
+        cache: "no-store",
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Unable to load community posts.");
+      }
+
+      setPosts(
+        Array.isArray(data.posts)
+          ? data.posts.map(normalizePost)
+          : []
+      );
+    } catch (err) {
+      console.error("Community posts error:", err);
+      setError(err.message || "Unable to load community posts.");
+    } finally {
+      setIsLoadingPosts(false);
+    }
+  }
+
+  // Authenticate the user and load their community feed.
   useEffect(() => {
     let isMounted = true;
 
-    async function checkAuthentication() {
+    async function initializeCommunity() {
       try {
         const response = await fetch(`${API_URL}/auth/me`, {
           method: "GET",
           credentials: "include",
+          cache: "no-store",
         });
 
-        if (isMounted) {
-          setIsAuthenticated(response.ok);
+        if (!response.ok) {
+          if (isMounted) {
+            setIsAuthenticated(false);
+          }
+          return;
         }
-      } catch (error) {
-        console.error("Authentication check failed:", error);
+
+        const data = await response.json();
+
+        if (!isMounted) return;
+
+        setCurrentUser(data.user || data);
+        setIsAuthenticated(true);
+
+        const postsResponse = await fetch(`${API_URL}/community/posts`, {
+          method: "GET",
+          credentials: "include",
+          cache: "no-store",
+        });
+
+        const postsData = await postsResponse.json();
+
+        if (!postsResponse.ok) {
+          throw new Error(
+            postsData.message || "Unable to load community posts."
+          );
+        }
 
         if (isMounted) {
-          setIsAuthenticated(false);
+          setPosts(
+            Array.isArray(postsData.posts)
+              ? postsData.posts.map(normalizePost)
+              : []
+          );
+        }
+      } catch (err) {
+        console.error("Community initialization error:", err);
+
+        if (isMounted) {
+          setError(err.message || "Unable to load your community.");
         }
       } finally {
         if (isMounted) {
           setIsCheckingAuth(false);
+          setIsLoadingPosts(false);
         }
       }
     }
 
-    checkAuthentication();
+    initializeCommunity();
 
     return () => {
       isMounted = false;
@@ -178,97 +189,144 @@ export default function ConnectPage() {
 
   const filteredPosts = useMemo(() => {
     return posts.filter((post) => {
-      const matchesSearch =
-        `${post.name} ${post.title} ${post.content} ${post.tags.join(" ")}`
-          .toLowerCase()
-          .includes(search.toLowerCase());
+      const searchableText = [
+        post.name,
+        post.university,
+        post.title,
+        post.content,
+        ...(post.tags || []),
+      ]
+        .join(" ")
+        .toLowerCase();
+
+      const matchesSearch = searchableText.includes(search.toLowerCase());
 
       const matchesFilter =
         activeFilter === "All Posts" ||
-        (activeFilter === "Discussions" && post.category === "Question") ||
-        (activeFilter === "Projects" && post.category === "Project Showcase") ||
-        (activeFilter === "Opportunities" && post.category === "Opportunity");
+        (activeFilter === "Discussions" &&
+          ["Discussion", "Question"].includes(post.category)) ||
+        (activeFilter === "Projects" &&
+          post.category === "Project Showcase") ||
+        (activeFilter === "Opportunities" &&
+          post.category === "Opportunity");
 
       return matchesSearch && matchesFilter;
     });
   }, [posts, search, activeFilter]);
 
-  function toggleLike(id) {
-    setPosts((current) =>
-      current.map((post) =>
-        post.id === id
-          ? {
-              ...post,
-              liked: !post.liked,
-              likes: post.likes + (post.liked ? -1 : 1),
-            }
-          : post
-      )
-    );
+  const myPosts = useMemo(() => {
+    if (!currentUser) return [];
+
+    return posts.filter((post) => {
+      return post.name === userName;
+    });
+  }, [posts, currentUser, userName]);
+
+  // Publish a post to MongoDB.
+  async function publishPost() {
+    if (!newPost.trim() || isPublishing) return;
+
+    setIsPublishing(true);
+    setError("");
+
+    try {
+      const response = await fetch(`${API_URL}/community/posts`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          title: newPost.trim(),
+          content: "",
+          category: "Discussion",
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Unable to publish your post.");
+      }
+
+      if (data.post) {
+        setPosts((current) => [
+          normalizePost(data.post),
+          ...current,
+        ]);
+      } else {
+        await loadCommunityPosts();
+      }
+
+      setNewPost("");
+      setShowComposer(false);
+      setActiveFilter("All Posts");
+      showNotice("Your post has been published!");
+    } catch (err) {
+      console.error("Publish post error:", err);
+      showNotice(err.message || "Unable to publish your post.");
+    } finally {
+      setIsPublishing(false);
+    }
   }
 
-  function toggleFollow(name) {
-    setFollowing((current) =>
-      current.includes(name)
-        ? current.filter((item) => item !== name)
-        : [...current, name]
-    );
+  // Like or unlike a post using the backend.
+  async function toggleLike(id) {
+    if (likingPostId) return;
+
+    setLikingPostId(id);
+
+    try {
+      const response = await fetch(
+        `${API_URL}/community/posts/${id}/like`,
+        {
+          method: "PATCH",
+          credentials: "include",
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Unable to update like.");
+      }
+
+      setPosts((current) =>
+        current.map((post) =>
+          post.id === id
+            ? {
+                ...post,
+                liked: data.liked,
+                likes: data.likes,
+              }
+            : post
+        )
+      );
+    } catch (err) {
+      console.error("Like error:", err);
+      showNotice(err.message || "Unable to update like.");
+    } finally {
+      setLikingPostId(null);
+    }
   }
 
-  function toggleConnect(name) {
-    setConnected((current) =>
-      current.includes(name)
-        ? current.filter((item) => item !== name)
-        : [...current, name]
-    );
+  async function sharePost(post) {
+    try {
+      if (!navigator.clipboard) {
+        throw new Error("Clipboard is not available in this browser.");
+      }
+
+      await navigator.clipboard.writeText(
+        `${post.title}\n\n${post.content}`
+      );
+
+      showNotice("Post copied to clipboard!");
+    } catch (err) {
+      showNotice(err.message || "Unable to share this post.");
+    }
   }
 
-  function publishPost() {
-    if (!newPost.trim()) return;
-
-    const post = {
-      id: Date.now(),
-      name: "You",
-      initials: "ME",
-      color: "violet",
-      university: "Your university",
-      time: "Just now",
-      category: "Discussion",
-      title: newPost.trim(),
-      content: "",
-      tags: ["Community"],
-      likes: 0,
-      comments: 0,
-      shares: 0,
-      liked: false,
-    };
-
-    setPosts((current) => [post, ...current]);
-    setNewPost("");
-    setShowComposer(false);
-    setActiveFilter("All Posts");
-    setNotice("Your post has been published!");
-    setTimeout(() => setNotice(""), 2500);
-  }
-
-  function addComment(id) {
-    if (!commentText.trim()) return;
-
-    setPosts((current) =>
-      current.map((post) =>
-        post.id === id
-          ? { ...post, comments: post.comments + 1 }
-          : post
-      )
-    );
-
-    setCommentText("");
-    setCommenting(null);
-    setNotice("Comment added!");
-    setTimeout(() => setNotice(""), 2500);
-  }
-
-  // Show a loading screen while checking authentication.
+  // Loading screen.
   if (isCheckingAuth) {
     return (
       <main className="connect-page">
@@ -282,7 +340,7 @@ export default function ConnectPage() {
     );
   }
 
-  // Show the sign-in screen if the user is not authenticated.
+  // Signed-out screen.
   if (!isAuthenticated) {
     return (
       <main className="connect-page">
@@ -355,14 +413,16 @@ export default function ConnectPage() {
           <Link href="/universities">Universities</Link>
           <Link href="/careers">Careers</Link>
           <Link href="/develop">Develop</Link>
-          <Link href="/connect" className="active">Connect</Link>
+          <Link href="/connect" className="active">
+            Connect
+          </Link>
         </nav>
 
         <div className="connect-nav-right">
           <Link href="/dashboard" className="connect-dashboard-link">
             My Dashboard <span>↗</span>
           </Link>
-          <div className="connect-user-avatar">ME</div>
+          <div className="connect-user-avatar">{userInitials}</div>
         </div>
       </header>
 
@@ -373,11 +433,13 @@ export default function ConnectPage() {
               <span className="connect-eyebrow-dot" />
               YOUR STUDENT COMMUNITY
             </div>
+
             <h1>
               Good things happen
               <br />
               when we <span>connect.</span>
             </h1>
+
             <p>
               Share ideas, meet people who inspire you, and find your
               next opportunity.
@@ -385,14 +447,20 @@ export default function ConnectPage() {
           </div>
 
           <div className="connect-welcome-art" aria-hidden="true">
-            <div className="connect-art-note note-one">Ideas grow here ✳</div>
-            <div className="connect-art-note note-two">Let's collaborate!</div>
+            <div className="connect-art-note note-one">
+              Ideas grow here ✳
+            </div>
+            <div className="connect-art-note note-two">
+              Let's collaborate!
+            </div>
             <div className="connect-art-center">
               <span>✳</span>
               <span>↗</span>
               <span>✦</span>
             </div>
-            <div className="connect-art-caption">A space to grow together.</div>
+            <div className="connect-art-caption">
+              A space to grow together.
+            </div>
           </div>
         </section>
 
@@ -400,22 +468,26 @@ export default function ConnectPage() {
           <div className="connect-stat">
             <span className="connect-stat-icon yellow-icon">✳</span>
             <div>
-              <strong>Community</strong>
-              <small>Learn from each other</small>
+              <strong>{posts.length}</strong>
+              <small>Community posts</small>
             </div>
           </div>
+
           <div className="connect-stat">
             <span className="connect-stat-icon violet-icon">↗</span>
             <div>
-              <strong>Opportunities</strong>
-              <small>Discover what's next</small>
+              <strong>{myPosts.length}</strong>
+              <small>Your published posts</small>
             </div>
           </div>
+
           <div className="connect-stat">
             <span className="connect-stat-icon pink-icon">♡</span>
             <div>
-              <strong>Connections</strong>
-              <small>Build meaningful relationships</small>
+              <strong>
+                {posts.reduce((total, post) => total + post.likes, 0)}
+              </strong>
+              <small>Total community likes</small>
             </div>
           </div>
         </section>
@@ -426,24 +498,39 @@ export default function ConnectPage() {
               <div className="connect-profile-cover">
                 <span>YOUR SPACE</span>
               </div>
+
               <div className="connect-profile-content">
-                <div className="connect-profile-avatar">ME</div>
-                <h3>Your profile</h3>
-                <p>Complete your profile to help others find you.</p>
+                <div className="connect-profile-avatar">
+                  {userInitials}
+                </div>
+
+                <h3>{userName}</h3>
+                <p>{userUniversity}</p>
+
                 <div className="connect-profile-progress">
-                  <div><span>Profile strength</span><strong>60%</strong></div>
+                  <div>
+                    <span>Your community activity</span>
+                    <strong>{myPosts.length} posts</strong>
+                  </div>
+
                   <div className="connect-progress-track">
-                    <span />
+                    <span
+                      style={{
+                        width: `${Math.min(myPosts.length * 10, 100)}%`,
+                      }}
+                    />
                   </div>
                 </div>
+
                 <Link href="/dashboard" className="connect-text-link">
-                  Complete profile <span>→</span>
+                  View my dashboard <span>→</span>
                 </Link>
               </div>
             </div>
 
             <div className="connect-side-card connect-navigation-card">
               <span className="connect-side-heading">EXPLORE</span>
+
               {[
                 ["Feed", "▤"],
                 ["My Connections", "♧"],
@@ -452,26 +539,34 @@ export default function ConnectPage() {
               ].map(([label, icon]) => (
                 <button
                   key={label}
-                  className={`connect-side-link ${activeTab === label ? "selected" : ""}`}
+                  className={`connect-side-link ${
+                    activeTab === label ? "selected" : ""
+                  }`}
                   onClick={() => {
                     setActiveTab(label);
-                    if (label === "Mentorship") {
-                      document.getElementById("connect-mentors")?.scrollIntoView({ behavior: "smooth" });
+
+                    if (label === "Feed") {
+                      document
+                        .getElementById("connect-feed")
+                        ?.scrollIntoView({ behavior: "smooth" });
                     } else if (label === "My Connections") {
-                      document.getElementById("connect-students")?.scrollIntoView({ behavior: "smooth" });
-                    } else if (label === "Feed") {
-                      document.getElementById("connect-feed")?.scrollIntoView({ behavior: "smooth" });
+                      showNotice(
+                        "Connection management is not connected to the backend yet."
+                      );
+                    } else if (label === "Mentorship") {
+                      showNotice(
+                        "Mentorship features are not connected to the backend yet."
+                      );
                     } else {
-                      setNotice("Interest management will be available with your profile settings.");
-                      setTimeout(() => setNotice(""), 3000);
+                      showNotice(
+                        "Interest management will be available with your profile settings."
+                      );
                     }
                   }}
                 >
                   <span>{icon}</span>
                   {label}
-                  {label === "My Connections" && (
-                    <small>{connected.length}</small>
-                  )}
+                  {label === "My Connections" && <small>0</small>}
                 </button>
               ))}
             </div>
@@ -479,8 +574,12 @@ export default function ConnectPage() {
             <div className="connect-side-card connect-guidelines">
               <span className="connect-guideline-icon">✦</span>
               <h3>Make this space yours.</h3>
-              <p>Be curious, share generously, and help fellow students grow.</p>
-              <span className="connect-guideline-tag">Community guidelines</span>
+              <p>
+                Be curious, share generously, and help fellow students grow.
+              </p>
+              <span className="connect-guideline-tag">
+                Community guidelines
+              </span>
             </div>
           </aside>
 
@@ -490,6 +589,7 @@ export default function ConnectPage() {
                 <span className="connect-side-heading">THE COMMUNITY</span>
                 <h2>Community feed</h2>
               </div>
+
               <button
                 className="connect-create-button"
                 onClick={() => setShowComposer(!showComposer)}
@@ -501,36 +601,56 @@ export default function ConnectPage() {
             {showComposer && (
               <div className="connect-composer connect-side-card">
                 <div className="connect-composer-top">
-                  <div className="connect-avatar violet">ME</div>
+                  <div className="connect-avatar violet">
+                    {userInitials}
+                  </div>
+
                   <div>
                     <strong>Share something with the community</strong>
-                    <small>What's on your mind?</small>
+                    <small>Posting as {userName}</small>
                   </div>
                 </div>
+
                 <textarea
                   value={newPost}
                   onChange={(e) => setNewPost(e.target.value)}
                   placeholder="Share an idea, ask a question, or tell us what you're working on..."
                   maxLength={1000}
                 />
+
                 <div className="connect-composer-bottom">
                   <span>{newPost.length}/1000</span>
+
                   <div>
                     <button
                       className="connect-cancel-button"
-                      onClick={() => setShowComposer(false)}
+                      onClick={() => {
+                        setShowComposer(false);
+                        setNewPost("");
+                      }}
                     >
                       Cancel
                     </button>
+
                     <button
                       className="connect-publish-button"
                       onClick={publishPost}
-                      disabled={!newPost.trim()}
+                      disabled={!newPost.trim() || isPublishing}
                     >
-                      Publish post ↗
+                      {isPublishing ? "Publishing..." : "Publish post ↗"}
                     </button>
                   </div>
                 </div>
+              </div>
+            )}
+
+            {error && (
+              <div className="connect-empty-state">
+                <h3>Something went wrong</h3>
+                <p>{error}</p>
+                <button onClick={loadCommunityPosts}>
+                  Try again
+                </button>
               </div>
             )}
 
@@ -558,56 +678,48 @@ export default function ConnectPage() {
             </div>
 
             <div className="connect-post-list">
-              {filteredPosts.length > 0 ? (
+              {isLoadingPosts ? (
+                <div className="connect-empty-state">
+                  <h3>Loading community posts...</h3>
+                  <p>Fetching the latest posts from Onkur.</p>
+                </div>
+              ) : !error && filteredPosts.length > 0 ? (
                 filteredPosts.map((post) => (
                   <article className="connect-post-card" key={post.id}>
                     <div className="connect-post-top">
                       <div className={`connect-avatar ${post.color}`}>
                         {post.initials}
                       </div>
+
                       <div className="connect-post-author">
                         <strong>{post.name}</strong>
                         <span>{post.university}</span>
-                        <small>{post.time}</small>
+                        <small>{formatPostTime(post.time)}</small>
                       </div>
-                      <button
-                        className="connect-post-more"
-                        aria-label="More post options"
-                        onClick={() => {
-                          setNotice("More post options will be available soon.");
-                          setTimeout(() => setNotice(""), 2500);
-                        }}
-                      >
-                        ···
-                      </button>
                     </div>
 
                     <div className="connect-post-body">
-                      <span className={`connect-category ${post.category === "Opportunity" ? "opportunity" : post.category === "Question" ? "question" : ""}`}>
+                      <span
+                        className={`connect-category ${
+                          post.category === "Opportunity"
+                            ? "opportunity"
+                            : post.category === "Question"
+                              ? "question"
+                              : ""
+                        }`}
+                      >
                         {post.category}
                       </span>
+
                       <h3>{post.title}</h3>
+
                       {post.content && <p>{post.content}</p>}
 
-                      {post.featured && (
-                        <div className="connect-featured-project">
-                          <div className="connect-project-graphic">
-                            <span>CASE</span>
-                            <strong>STUDY<br />01</strong>
-                            <small>DESIGN PROCESS</small>
-                          </div>
-                          <div className="connect-project-info">
-                            <span>FEATURED WORK</span>
-                            <strong>Food delivery app redesign</strong>
-                            <small>Research · Wireframes · UI Design</small>
-                          </div>
-                          <span className="connect-project-arrow">↗</span>
-                        </div>
-                      )}
-
                       <div className="connect-post-tags">
-                        {post.tags.map((tag) => (
-                          <span key={tag}>#{tag.replaceAll(" ", "")}</span>
+                        {post.tags.map((tag, index) => (
+                          <span key={`${post.id}-${tag}-${index}`}>
+                            #{tag.replaceAll(" ", "")}
+                          </span>
                         ))}
                       </div>
                     </div>
@@ -622,170 +734,183 @@ export default function ConnectPage() {
                       <button
                         className={post.liked ? "liked" : ""}
                         onClick={() => toggleLike(post.id)}
+                        disabled={likingPostId === post.id}
                       >
-                        <span>{post.liked ? "♥" : "♡"}</span> Like
+                        <span>{post.liked ? "♥" : "♡"}</span>
+                        {likingPostId === post.id
+                          ? "Updating..."
+                          : "Like"}
                       </button>
+
                       <button
                         onClick={() =>
-                          setCommenting(commenting === post.id ? null : post.id)
+                          showNotice(
+                            "Comments are not connected to the backend yet."
+                          )
                         }
                       >
                         <span>▢</span> Comment
                       </button>
-                      <button
-                        onClick={() => {
-                          if (navigator.clipboard) {
-                            navigator.clipboard.writeText(
-                              `${post.title}\n\n${post.content}`
-                            );
-                            setNotice("Post copied to clipboard!");
-                          } else {
-                            setNotice("Clipboard is not available in this browser.");
-                          }
-                          setTimeout(() => setNotice(""), 2500);
-                        }}
-                      >
+
+                      <button onClick={() => sharePost(post)}>
                         <span>↗</span> Share
                       </button>
                     </div>
-
-                    {commenting === post.id && (
-                      <div className="connect-comment-box">
-                        <input
-                          value={commentText}
-                          onChange={(e) => setCommentText(e.target.value)}
-                          placeholder="Write a thoughtful comment..."
-                          maxLength={300}
-                        />
-                        <button
-                          onClick={() => addComment(post.id)}
-                          disabled={!commentText.trim()}
-                        >
-                          Send
-                        </button>
-                      </div>
-                    )}
                   </article>
                 ))
-              ) : (
+              ) : !error ? (
                 <div className="connect-empty-state">
                   <span>⌕</span>
-                  <h3>No posts found</h3>
-                  <p>Try a different search or select another category.</p>
-                  <button
-                    onClick={() => {
-                      setSearch("");
-                      setActiveFilter("All Posts");
-                    }}
-                  >
-                    Clear filters
-                  </button>
+                  <h3>
+                    {posts.length === 0
+                      ? "Your community starts here!"
+                      : "No posts found"}
+                  </h3>
+                  <p>
+                    {posts.length === 0
+                      ? "Be the first to share something with Onkur students."
+                      : "Try a different search or select another category."}
+                  </p>
+
+                  {posts.length === 0 ? (
+                    <button onClick={() => setShowComposer(true)}>
+                      Create the first post
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        setSearch("");
+                        setActiveFilter("All Posts");
+                      }}
+                    >
+                      Clear filters
+                    </button>
+                  )}
                 </div>
-              )}
+              ) : null}
             </div>
 
-            <div className="connect-feed-end">
-              <span>✳</span>
-              That's everything for now. Keep exploring!
-            </div>
+            {!isLoadingPosts && posts.length > 0 && (
+              <div className="connect-feed-end">
+                <span>✳</span>
+                That's everything for now. Keep exploring!
+              </div>
+            )}
           </section>
 
           <aside className="connect-right-column">
-            <div className="connect-side-card connect-students-card" id="connect-students">
+            <div className="connect-side-card connect-students-card">
               <div className="connect-right-heading">
                 <div>
-                  <span className="connect-side-heading">PEOPLE TO KNOW</span>
-                  <h3>Find your people.</h3>
+                  <span className="connect-side-heading">YOUR ACTIVITY</span>
+                  <h3>Your community journey.</h3>
                 </div>
                 <span className="connect-heading-decoration">✳</span>
               </div>
 
-              {students.map((student) => (
-                <div className="connect-student-item" key={student.id}>
-                  <div className={`connect-avatar ${student.color}`}>
-                    {student.initials}
-                  </div>
-                  <div className="connect-student-info">
-                    <strong>{student.name}</strong>
-                    <span>{student.subject} · {student.year}</span>
-                    <small>{student.mutual} mutual connections</small>
-                    <div className="connect-student-skills">
-                      {student.skills.slice(0, 2).map((skill) => (
-                        <span key={skill}>{skill}</span>
-                      ))}
-                    </div>
-                    <button
-                      className={`connect-follow-button ${following.includes(student.name) ? "following" : ""}`}
-                      onClick={() => toggleFollow(student.name)}
-                    >
-                      {following.includes(student.name) ? "Following ✓" : "+ Follow"}
-                    </button>
-                  </div>
+              <div className="connect-student-item">
+                <div className="connect-avatar violet">
+                  {userInitials}
                 </div>
-              ))}
 
-              <button
-                className="connect-view-all"
-                onClick={() => setNotice("More student profiles will be available soon.")}
-              >
-                Discover more students →
-              </button>
+                <div className="connect-student-info">
+                  <strong>{userName}</strong>
+                  <span>{userUniversity}</span>
+                  <small>{myPosts.length} published posts</small>
+                </div>
+              </div>
+
+              <div className="connect-student-item">
+                <div className="connect-avatar yellow">✳</div>
+                <div className="connect-student-info">
+                  <strong>Community contributions</strong>
+                  <span>{myPosts.length} posts shared</span>
+                  <small>
+                    {myPosts.reduce(
+                      (total, post) => total + post.likes,
+                      0
+                    )}{" "}
+                    likes on your posts
+                  </small>
+                </div>
+              </div>
+
+              <Link href="/dashboard" className="connect-view-all">
+                View your dashboard →
+              </Link>
             </div>
 
-            <div className="connect-side-card connect-mentors-card" id="connect-mentors">
-              <span className="connect-side-heading">LEARN FROM OTHERS</span>
-              <h3>Meet a mentor.</h3>
-              <p>Get guidance from people who have already walked the path.</p>
+            <div className="connect-side-card connect-mentors-card">
+              <span className="connect-side-heading">COMMUNITY OVERVIEW</span>
+              <h3>What's happening?</h3>
+              <p>
+                Explore what students are sharing across the Onkur community.
+              </p>
 
-              {mentors.map((mentor) => (
-                <div className="connect-mentor-item" key={mentor.name}>
-                  <div className={`connect-avatar ${mentor.color}`}>
-                    {mentor.initials}
+              {[
+                {
+                  label: "Discussions",
+                  count: posts.filter((p) =>
+                    ["Discussion", "Question"].includes(p.category)
+                  ).length,
+                },
+                {
+                  label: "Projects",
+                  count: posts.filter(
+                    (p) => p.category === "Project Showcase"
+                  ).length,
+                },
+                {
+                  label: "Opportunities",
+                  count: posts.filter(
+                    (p) => p.category === "Opportunity"
+                  ).length,
+                },
+              ].map((item) => (
+                <div className="connect-mentor-item" key={item.label}>
+                  <div className="connect-avatar violet">
+                    ✳
                   </div>
+
                   <div className="connect-mentor-info">
-                    <strong>{mentor.name}</strong>
-                    <span>{mentor.role}</span>
-                    <small>{mentor.expertise}</small>
+                    <strong>{item.label}</strong>
+                    <span>{item.count} posts</span>
                   </div>
-                  <button
-                    className={`connect-mentor-add ${connected.includes(mentor.name) ? "added" : ""}`}
-                    onClick={() => toggleConnect(mentor.name)}
-                    aria-label={`Connect with ${mentor.name}`}
-                  >
-                    {connected.includes(mentor.name) ? "✓" : "+"}
-                  </button>
                 </div>
               ))}
-
-              <button
-                className="connect-view-all"
-                onClick={() => setNotice("The full mentor directory is coming soon.")}
-              >
-                Explore mentors →
-              </button>
             </div>
 
             <div className="connect-side-card connect-trending-card">
-              <span className="connect-side-heading">WHAT'S HAPPENING</span>
-              <h3>Trending topics</h3>
-              {trends.map((trend, index) => (
-                <button
-                  className="connect-trend-item"
-                  key={trend.tag}
-                  onClick={() => setSearch(trend.tag.replace("#", ""))}
-                >
-                  <span className="connect-trend-number">0{index + 1}</span>
-                  <span>
-                    <strong>{trend.tag}</strong>
-                    <small>{trend.posts}</small>
-                  </span>
-                  <span className="connect-trend-arrow">↗</span>
-                </button>
-              ))}
+              <span className="connect-side-heading">YOUR CONTRIBUTIONS</span>
+              <h3>My posts</h3>
+
+              {myPosts.length > 0 ? (
+                myPosts.slice(0, 4).map((post) => (
+                  <button
+                    className="connect-trend-item"
+                    key={post.id}
+                    onClick={() => {
+                      setActiveFilter("All Posts");
+                      setSearch(post.title);
+                    }}
+                  >
+                    <span className="connect-trend-number">↗</span>
+                    <span>
+                      <strong>{post.title}</strong>
+                      <small>{post.likes} likes</small>
+                    </span>
+                    <span className="connect-trend-arrow">→</span>
+                  </button>
+                ))
+              ) : (
+                <p>You haven't published any posts yet.</p>
+              )}
             </div>
 
             <div className="connect-community-note">
-              <span>onkur<span>.</span></span>
+              <span>
+                onkur<span>.</span>
+              </span>
               <p>Growing together, one connection at a time.</p>
               <small>© 2026 Onkur Community</small>
             </div>
