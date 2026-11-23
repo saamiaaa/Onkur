@@ -1,3 +1,4 @@
+
 "use client";
 
 import { getCareersForUniversity } from "../data/careerLinks";
@@ -5,7 +6,21 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import universities from "../data/universities";
 
-const API_URL = "http://localhost:5000/api";
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+
+// Safely display career entries whether they are strings or objects.
+function getCareerName(career) {
+  if (typeof career === "string") return career;
+
+  return (
+    career?.name ||
+    career?.title ||
+    career?.label ||
+    career?.career ||
+    "Career path"
+  );
+}
 
 export default function UniversitiesPage() {
   const [search, setSearch] = useState("");
@@ -14,23 +29,25 @@ export default function UniversitiesPage() {
   const [subject, setSubject] = useState("All");
   const [type, setType] = useState("All");
   const [sort, setSort] = useState("az");
+
   const [saved, setSaved] = useState([]);
   const [compare, setCompare] = useState([]);
   const [selected, setSelected] = useState(null);
+
   const [showSaved, setShowSaved] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoadingSaved, setIsLoadingSaved] = useState(true);
   const [savingId, setSavingId] = useState(null);
   const [saveError, setSaveError] = useState("");
+  const [showAuthPrompt, setShowAuthPrompt] = useState(false);
 
-  // LOAD THE LOGGED-IN USER'S SAVED UNIVERSITIES
+  // CHECK LOGIN STATUS AND LOAD SAVED UNIVERSITIES
   useEffect(() => {
     let isMounted = true;
 
     async function loadSavedUniversities() {
       try {
         const authResponse = await fetch(`${API_URL}/auth/me`, {
-          method: "GET",
           credentials: "include",
         });
 
@@ -46,7 +63,6 @@ export default function UniversitiesPage() {
         if (isMounted) setIsAuthenticated(true);
 
         const dashboardResponse = await fetch(`${API_URL}/dashboard`, {
-          method: "GET",
           credentials: "include",
         });
 
@@ -60,33 +76,28 @@ export default function UniversitiesPage() {
         }
 
         const dashboardData = await dashboardResponse.json();
-        const savedUniversities = dashboardData.dashboard?.universities || [];
+        const savedUniversities =
+          dashboardData.dashboard?.universities || [];
 
         const savedIds = savedUniversities
           .map((university) => {
-            const matchedUniversity = universities.find(
+            const matched = universities.find(
               (item) =>
                 item.id === university.id ||
                 item.name === university.name
             );
 
-            return matchedUniversity?.id;
+            return matched?.id;
           })
           .filter(Boolean);
 
-        if (isMounted) {
-          setSaved(savedIds);
-        }
+        if (isMounted) setSaved(savedIds);
       } catch (error) {
         console.error("University loading error:", error);
 
-        if (isMounted) {
-          setSaveError(error.message);
-        }
+        if (isMounted) setSaveError(error.message);
       } finally {
-        if (isMounted) {
-          setIsLoadingSaved(false);
-        }
+        if (isMounted) setIsLoadingSaved(false);
       }
     }
 
@@ -97,54 +108,72 @@ export default function UniversitiesPage() {
     };
   }, []);
 
-  const countries = useMemo(() => {
-    return [
+  // LOGIN REQUIREMENT
+  function requireLogin() {
+    if (isLoadingSaved) return false;
+
+    if (!isAuthenticated) {
+      setShowAuthPrompt(true);
+      return false;
+    }
+
+    return true;
+  }
+
+  // FILTER OPTIONS
+  const countries = useMemo(
+    () => [
       "All",
       ...new Set(universities.map((uni) => uni.country).filter(Boolean)),
-    ];
-  }, []);
+    ],
+    []
+  );
 
-  const levels = useMemo(() => {
-    return [
+  const levels = useMemo(
+    () => [
       "All",
       ...new Set(
         universities.flatMap((uni) => uni.levels || []).filter(Boolean)
       ),
-    ];
-  }, []);
+    ],
+    []
+  );
 
-  const subjects = useMemo(() => {
-    return [
+  const subjects = useMemo(
+    () => [
       "All",
       ...new Set(
         universities.flatMap((uni) => uni.subjects || []).filter(Boolean)
       ),
-    ];
-  }, []);
+    ],
+    []
+  );
 
-  const types = useMemo(() => {
-    return [
+  const types = useMemo(
+    () => [
       "All",
       ...new Set(universities.map((uni) => uni.type).filter(Boolean)),
-    ];
-  }, []);
+    ],
+    []
+  );
 
+  // SEARCH, FILTER AND SORT
   const filteredUniversities = useMemo(() => {
     let result = [...universities];
 
     if (search.trim()) {
       const query = search.toLowerCase();
 
-      result = result.filter((uni) => {
-        return (
-          uni.name?.toLowerCase().includes(query) ||
-          uni.location?.toLowerCase().includes(query) ||
-          uni.city?.toLowerCase().includes(query) ||
-          uni.country?.toLowerCase().includes(query) ||
-          uni.short?.toLowerCase().includes(query) ||
-          uni.shortName?.toLowerCase().includes(query)
-        );
-      });
+      result = result.filter((uni) =>
+        [
+          uni.name,
+          uni.location,
+          uni.city,
+          uni.country,
+          uni.short,
+          uni.shortName,
+        ].some((value) => value?.toLowerCase().includes(query))
+      );
     }
 
     if (country !== "All") {
@@ -167,33 +196,28 @@ export default function UniversitiesPage() {
       result = result.filter((uni) => saved.includes(uni.id));
     }
 
-    result.sort((a, b) => {
-      if (sort === "az") return a.name.localeCompare(b.name);
-      if (sort === "za") return b.name.localeCompare(a.name);
-      return 0;
-    });
+    result.sort((a, b) =>
+      sort === "az"
+        ? a.name.localeCompare(b.name)
+        : b.name.localeCompare(a.name)
+    );
 
     return result;
   }, [search, country, level, subject, type, sort, showSaved, saved]);
 
-  // SAVE OR REMOVE A UNIVERSITY FROM THE USER'S ACCOUNT
+  // SAVE OR REMOVE UNIVERSITY
   async function toggleSaved(university) {
-    if (!isAuthenticated) {
-      window.location.href = "/login";
-      return;
-    }
-
+    if (!requireLogin()) return;
     if (savingId) return;
 
     setSaveError("");
 
     const wasSaved = saved.includes(university.id);
+    const previousSaved = saved;
 
     const updatedSaved = wasSaved
       ? saved.filter((id) => id !== university.id)
       : [...saved, university.id];
-
-    const previousSaved = saved;
 
     setSaved(updatedSaved);
     setSavingId(university.id);
@@ -246,15 +270,20 @@ export default function UniversitiesPage() {
     }
   }
 
+  // OPEN UNIVERSITY DETAILS
+  function openUniversity(university) {
+    if (!requireLogin()) return;
+    setSelected(university);
+  }
+
+  // COMPARE UNIVERSITIES
   function toggleCompare(id) {
     setCompare((previous) => {
       if (previous.includes(id)) {
         return previous.filter((item) => item !== id);
       }
 
-      if (previous.length >= 3) {
-        return previous;
-      }
+      if (previous.length >= 3) return previous;
 
       return [...previous, id];
     });
@@ -277,208 +306,246 @@ export default function UniversitiesPage() {
     compare.includes(uni.id)
   );
 
+  const relatedCareers = selected
+    ? getCareersForUniversity(selected) || []
+    : [];
+
   return (
-    <main className="min-h-screen bg-[#101116] text-[#f1f0eb]">
-      {/* PAGE HEADER */}
-      <section className="mx-auto max-w-7xl px-6 pb-8 pt-10">
-        <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <Link
-              href="/dashboard"
-              className="mb-5 inline-flex items-center gap-2 text-sm text-[#a4a4b0] transition hover:text-[#f8d943]"
-            >
-              ← Back to Dashboard
-            </Link>
-
-            <p className="mb-3 text-xs font-semibold uppercase tracking-[0.25em] text-[#f8d943]">
-              Discover · University Explorer
-            </p>
-
-            <h1 className="text-3xl font-bold tracking-tight sm:text-5xl">
-              Find your <span className="text-[#f8d943]">next chapter.</span>
-            </h1>
-
-            <p className="mt-4 max-w-2xl text-sm leading-7 text-[#a4a4b0] sm:text-base">
-              Explore universities, discover academic opportunities, and
-              shortlist the places that match your future goals.
-            </p>
-          </div>
-
-          <button
-            onClick={() => setShowSaved((previous) => !previous)}
-            className={`rounded-full border px-5 py-3 text-sm font-semibold transition ${
-              showSaved
-                ? "border-[#f8d943] bg-[#f8d943] text-[#101116]"
-                : "border-[#34343e] text-[#f1f0eb] hover:border-[#f8d943]"
-            }`}
+    <main className="university-page">
+      {/* NAVIGATION */}
+      <nav className="university-navbar">
+        <div className="container">
+          <Link
+            href={isAuthenticated ? "/dashboard" : "/"}
+            className="active-nav"
           >
-            ♡ {showSaved ? "Show all universities" : `Saved (${saved.length})`}
-          </button>
+            {isAuthenticated ? "← Back to Dashboard" : "← Back to Home"}
+          </Link>
         </div>
+      </nav>
 
-        {saveError && (
-          <div className="mb-6 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
-            {saveError}
-          </div>
-        )}
+      {/* HERO */}
+      <section className="university-hero">
+        <div className="container">
+          <p className="eyebrow">Discover · University Explorer</p>
 
-        {!isAuthenticated && !isLoadingSaved && (
-          <div className="mb-6 rounded-xl border border-[#7770ff]/30 bg-[#7770ff]/10 px-4 py-3 text-sm text-[#c5c2ff]">
-            Sign in to save universities to your personal dashboard.
-          </div>
-        )}
+          <h1>
+            Find your <span>next chapter.</span>
+          </h1>
 
-        {/* SEARCH */}
-        <div className="rounded-2xl border border-[#292a33] bg-[#17181f] p-5">
-          <label className="mb-3 block text-sm font-medium text-[#c7c6ce]">
-            Search universities
-          </label>
+          <p>
+            Explore universities, discover academic opportunities, and
+            shortlist the places that match your future goals.
+          </p>
 
-          <div className="relative">
-            <input
-              type="text"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search by university, city, or country..."
-              className="w-full rounded-xl border border-[#34343e] bg-[#101116] px-5 py-4 text-sm text-white outline-none transition placeholder:text-[#666673] focus:border-[#7770ff]"
-            />
-            <span className="absolute right-5 top-1/2 -translate-y-1/2 text-[#7770ff]">
-              ⌕
-            </span>
-          </div>
+          <div className="university-hero-stats">
+            <div>
+              <strong>{universities.length}</strong>
+              <span>Universities</span>
+            </div>
 
-          {/* FILTERS */}
-          <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
-            <select
-              value={country}
-              onChange={(event) => setCountry(event.target.value)}
-              className="rounded-xl border border-[#34343e] bg-[#101116] px-4 py-3 text-sm text-[#f1f0eb] outline-none focus:border-[#7770ff]"
-            >
-              {countries.map((item) => (
-                <option key={item} value={item}>
-                  {item === "All" ? "All countries" : item}
-                </option>
-              ))}
-            </select>
+            <div>
+              <strong>{countries.length - 1}</strong>
+              <span>Countries</span>
+            </div>
 
-            <select
-              value={level}
-              onChange={(event) => setLevel(event.target.value)}
-              className="rounded-xl border border-[#34343e] bg-[#101116] px-4 py-3 text-sm text-[#f1f0eb] outline-none focus:border-[#7770ff]"
-            >
-              {levels.map((item) => (
-                <option key={item} value={item}>
-                  {item === "All" ? "All study levels" : item}
-                </option>
-              ))}
-            </select>
-
-            <select
-              value={subject}
-              onChange={(event) => setSubject(event.target.value)}
-              className="rounded-xl border border-[#34343e] bg-[#101116] px-4 py-3 text-sm text-[#f1f0eb] outline-none focus:border-[#7770ff]"
-            >
-              {subjects.map((item) => (
-                <option key={item} value={item}>
-                  {item === "All" ? "All subjects" : item}
-                </option>
-              ))}
-            </select>
-
-            <select
-              value={type}
-              onChange={(event) => setType(event.target.value)}
-              className="rounded-xl border border-[#34343e] bg-[#101116] px-4 py-3 text-sm text-[#f1f0eb] outline-none focus:border-[#7770ff]"
-            >
-              {types.map((item) => (
-                <option key={item} value={item}>
-                  {item === "All" ? "All university types" : item}
-                </option>
-              ))}
-            </select>
-
-            <select
-              value={sort}
-              onChange={(event) => setSort(event.target.value)}
-              className="rounded-xl border border-[#34343e] bg-[#101116] px-4 py-3 text-sm text-[#f1f0eb] outline-none focus:border-[#7770ff]"
-            >
-              <option value="az">Name: A–Z</option>
-              <option value="za">Name: Z–A</option>
-            </select>
-          </div>
-
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-            <p className="text-xs text-[#858592]">
-              Showing {filteredUniversities.length} universities
-            </p>
-
-            <button
-              onClick={clearFilters}
-              className="text-xs font-semibold text-[#f8d943] transition hover:text-white"
-            >
-              Clear all filters
-            </button>
+            <div>
+              <strong>{saved.length}</strong>
+              <span>Saved universities</span>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* UNIVERSITY GRID */}
-      <section className="mx-auto max-w-7xl px-6 pb-16">
-        {isLoadingSaved ? (
-          <div className="py-20 text-center text-sm text-[#858592]">
-            Loading your saved universities...
-          </div>
-        ) : filteredUniversities.length === 0 ? (
-          <div className="rounded-2xl border border-[#292a33] bg-[#17181f] px-6 py-16 text-center">
-            <div className="mb-4 text-4xl">⌕</div>
-            <h2 className="text-xl font-semibold">No universities found</h2>
-            <p className="mt-2 text-sm text-[#858592]">
-              Try changing your search or filters.
-            </p>
+      {/* EXPLORER */}
+      <section className="explorer-section">
+        <div className="container">
+          <div className="explorer-heading">
+            <div>
+              <p className="eyebrow">Your academic journey</p>
+
+              <h2>
+                Explore <span>universities.</span>
+              </h2>
+
+              <p>
+                Find a university that fits your interests and future plans.
+              </p>
+            </div>
+
             <button
-              onClick={clearFilters}
-              className="mt-5 rounded-full bg-[#f8d943] px-5 py-3 text-sm font-semibold text-[#101116]"
+              className={`saved-toggle ${showSaved ? "saved-active" : ""}`}
+              onClick={() => {
+                if (!requireLogin()) return;
+                setShowSaved((previous) => !previous);
+              }}
             >
-              Clear filters
+              ♡ {showSaved ? "Show all universities" : `Saved (${saved.length})`}
             </button>
           </div>
-        ) : (
-          <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
-            {filteredUniversities.map((uni) => {
-              const isSaved = saved.includes(uni.id);
-              const isCompared = compare.includes(uni.id);
 
-              return (
-                <article
-                  key={uni.id}
-                  className="group overflow-hidden rounded-2xl border border-[#292a33] bg-[#17181f] transition duration-300 hover:-translate-y-1 hover:border-[#7770ff]/60"
+          {saveError && (
+            <div className="save-error">
+              {saveError}
+            </div>
+          )}
+
+          {!isAuthenticated && !isLoadingSaved && (
+            <div className="directory-note">
+              <div className="directory-note-icon">✦</div>
+              <div>
+                <h3>Build your personal university shortlist</h3>
+                <p>
+                  You can browse universities freely. Log in or create an
+                  account to explore university details and save your
+                  favourites.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* FILTER PANEL */}
+          <div className="filter-panel">
+            <div className="search-box">
+              <span>⌕</span>
+
+              <input
+                type="text"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Search by university, city, or country..."
+              />
+
+              {search && (
+                <button
+                  onClick={() => setSearch("")}
+                  aria-label="Clear search"
                 >
-                  <div
-                    className="flex h-32 items-center justify-center"
-                    style={{
-                      background:
-                        uni.color ||
-                        "linear-gradient(135deg, #29264a, #191a27)",
-                    }}
-                  >
-                    <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-white/20 bg-black/20 text-2xl font-bold text-white">
-                      {uni.shortName || uni.short || uni.name?.charAt(0)}
-                    </div>
-                  </div>
+                  ×
+                </button>
+              )}
+            </div>
 
-                  <div className="p-5">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <h2 className="text-lg font-semibold leading-snug">
-                          {uni.name}
-                        </h2>
-                        <p className="mt-2 text-xs text-[#9999a6]">
-                          {uni.location || uni.city}
-                          {uni.country ? `, ${uni.country}` : ""}
-                        </p>
+            <div className="filter-grid">
+              <label>
+                Country
+                <select
+                  value={country}
+                  onChange={(event) => setCountry(event.target.value)}
+                >
+                  {countries.map((item) => (
+                    <option key={item} value={item}>
+                      {item === "All" ? "All countries" : item}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label>
+                Study level
+                <select
+                  value={level}
+                  onChange={(event) => setLevel(event.target.value)}
+                >
+                  {levels.map((item) => (
+                    <option key={item} value={item}>
+                      {item === "All" ? "All study levels" : item}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label>
+                Subject
+                <select
+                  value={subject}
+                  onChange={(event) => setSubject(event.target.value)}
+                >
+                  {subjects.map((item) => (
+                    <option key={item} value={item}>
+                      {item === "All" ? "All subjects" : item}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label>
+                University type
+                <select
+                  value={type}
+                  onChange={(event) => setType(event.target.value)}
+                >
+                  {types.map((item) => (
+                    <option key={item} value={item}>
+                      {item === "All" ? "All university types" : item}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+
+            <div className="filter-bottom">
+              <span>
+                Showing <strong>{filteredUniversities.length}</strong>{" "}
+                universities
+              </span>
+
+              <div className="sort-control">
+                <label htmlFor="university-sort">Sort by</label>
+
+                <select
+                  id="university-sort"
+                  value={sort}
+                  onChange={(event) => setSort(event.target.value)}
+                >
+                  <option value="az">Name: A–Z</option>
+                  <option value="za">Name: Z–A</option>
+                </select>
+
+                <button className="reset-button" onClick={clearFilters}>
+                  Clear all filters
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* UNIVERSITY GRID */}
+          {isLoadingSaved ? (
+            <div className="empty-state">
+              <p>Loading universities...</p>
+            </div>
+          ) : filteredUniversities.length === 0 ? (
+            <div className="empty-state">
+              <div>⌕</div>
+              <h3>No universities found</h3>
+              <p>Try changing your search or filters.</p>
+
+              <button className="details-button" onClick={clearFilters}>
+                Clear filters
+              </button>
+            </div>
+          ) : (
+            <div className="university-grid">
+              {filteredUniversities.map((uni) => {
+                const isSaved = saved.includes(uni.id);
+                const isCompared = compare.includes(uni.id);
+
+                return (
+                  <article className="university-card" key={uni.id}>
+                    <div className="university-card-top">
+                      <div
+                        className="university-monogram"
+                        style={
+                          uni.color
+                            ? { background: uni.color }
+                            : undefined
+                        }
+                      >
+                        {uni.shortName || uni.short || uni.name?.charAt(0)}
                       </div>
 
                       <button
+                        className={`save-button ${isSaved ? "is-saved" : ""}`}
                         onClick={() => toggleSaved(uni)}
                         disabled={savingId === uni.id || isLoadingSaved}
                         aria-label={
@@ -486,185 +553,212 @@ export default function UniversitiesPage() {
                             ? "Remove saved university"
                             : "Save university"
                         }
-                        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full border text-lg transition disabled:cursor-not-allowed disabled:opacity-50 ${
-                          isSaved
-                            ? "border-[#f8d943] bg-[#f8d943] text-[#101116]"
-                            : "border-[#34343e] text-[#a4a4b0] hover:border-[#f8d943] hover:text-[#f8d943]"
-                        }`}
                       >
                         {savingId === uni.id ? "…" : isSaved ? "♥" : "♡"}
                       </button>
                     </div>
 
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      {uni.type && (
-                        <span className="rounded-full bg-[#7770ff]/10 px-3 py-1 text-[11px] text-[#aaa5ff]">
-                          {uni.type}
-                        </span>
-                      )}
+                    <p className="university-location">
+                      {uni.location || uni.city}
+                      {uni.country ? `, ${uni.country}` : ""}
+                    </p>
 
-                      {(uni.levels || []).slice(0, 2).map((item) => (
-                        <span
-                          key={item}
-                          className="rounded-full bg-[#292a33] px-3 py-1 text-[11px] text-[#b7b6c0]"
-                        >
-                          {item}
-                        </span>
-                      ))}
-                    </div>
+                    <h3>{uni.name}</h3>
 
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      {(uni.subjects || []).slice(0, 3).map((item) => (
-                        <span
-                          key={item}
-                          className="text-[11px] text-[#858592]"
-                        >
-                          #{item}
+                    <div className="university-tags">
+                      {uni.type && <span>{uni.type}</span>}
+
+                      {(uni.levels || []).slice(0, 2).map((item, index) => (
+                        <span key={`${uni.id}-level-${index}`}>
+                          {typeof item === "string" ? item : item?.name || item?.title}
                         </span>
                       ))}
                     </div>
 
-                    <div className="mt-6 flex items-center gap-3">
+                    <div className="university-subjects">
+                      {(uni.subjects || []).slice(0, 3).map((item, index) => (
+                        <span key={`${uni.id}-subject-${index}`}>
+                          #{typeof item === "string" ? item : item?.name || item?.title}
+                        </span>
+                      ))}
+                    </div>
+
+                    <div className="university-card-actions">
                       <button
-                        onClick={() => setSelected(uni)}
-                        className="flex-1 rounded-xl bg-[#7770ff] px-4 py-3 text-xs font-semibold text-white transition hover:bg-[#6860ec]"
+                        className="details-button"
+                        onClick={() => openUniversity(uni)}
                       >
                         Explore university
                       </button>
 
                       <button
-                        onClick={() => toggleCompare(uni.id)}
-                        className={`rounded-xl border px-4 py-3 text-xs font-semibold transition ${
-                          isCompared
-                            ? "border-[#f8d943] text-[#f8d943]"
-                            : "border-[#34343e] text-[#a4a4b0] hover:border-[#f8d943]"
+                        className={`compare-button ${
+                          isCompared ? "compare-active" : ""
                         }`}
+                        onClick={() => toggleCompare(uni.id)}
+                        disabled={!isCompared && compare.length >= 3}
                       >
                         {isCompared ? "Added" : "Compare"}
                       </button>
                     </div>
-                  </div>
-                </article>
-              );
-            })}
-          </div>
-        )}
-      </section>
+                  </article>
+                );
+              })}
+            </div>
+          )}
 
-      {/* COMPARE BAR */}
-      {compare.length > 0 && (
-        <div className="fixed bottom-5 left-1/2 z-40 w-[calc(100%-2rem)] max-w-3xl -translate-x-1/2 rounded-2xl border border-[#44415f] bg-[#1b1b27] p-4 shadow-2xl">
-          <div className="flex flex-wrap items-center justify-between gap-4">
+          {/* DIRECTORY NOTE */}
+          <div className="directory-note" style={{ marginTop: "35px" }}>
+            <div className="directory-note-icon">✦</div>
+
             <div>
-              <p className="text-sm font-semibold">
-                Compare universities ({compare.length}/3)
-              </p>
-              <p className="mt-1 text-xs text-[#9999a6]">
-                {comparedUniversities.map((uni) => uni.shortName || uni.name).join(" · ")}
+              <h3>Your next chapter starts with exploration.</h3>
+              <p>
+                Compare your options, explore different study areas, and
+                build a shortlist of universities that interest you.
+                Always check official university websites for current
+                admission requirements and application information.
               </p>
             </div>
-
-            <button
-              onClick={() => setCompare([])}
-              className="rounded-full border border-[#555568] px-4 py-2 text-xs text-[#c7c6ce] transition hover:border-[#f8d943] hover:text-[#f8d943]"
-            >
-              Clear comparison
-            </button>
           </div>
+        </div>
+      </section>
+
+      {/* COMPARISON DOCK */}
+      {compare.length > 0 && (
+        <div className="compare-dock">
+          <div>
+            <strong>Compare universities ({compare.length}/3)</strong>
+            <span>Select up to three universities</span>
+          </div>
+
+          <div className="compare-dock-names">
+            {comparedUniversities.map((uni) => (
+              <span key={uni.id}>
+                {uni.shortName || uni.name}
+              </span>
+            ))}
+          </div>
+
+          <button
+            className="compare-dock-button"
+            onClick={() => {
+              if (comparedUniversities.length > 0) {
+                openUniversity(comparedUniversities[0]);
+              }
+            }}
+          >
+            View details
+          </button>
+
+          <button
+            className="compare-clear"
+            onClick={() => setCompare([])}
+            aria-label="Clear comparison"
+          >
+            ×
+          </button>
         </div>
       )}
 
       {/* UNIVERSITY DETAILS MODAL */}
       {selected && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm"
+          className="university-modal-backdrop"
           onClick={() => setSelected(null)}
         >
           <div
-            className="max-h-[85vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-[#34343e] bg-[#17181f] p-6 sm:p-8"
+            className="university-modal"
             onClick={(event) => event.stopPropagation()}
           >
-            <div className="flex items-start justify-between gap-4">
+            <button
+              className="modal-close"
+              onClick={() => setSelected(null)}
+              aria-label="Close details"
+            >
+              ×
+            </button>
+
+            <div className="university-modal-monogram">
+              {selected.shortName ||
+                selected.short ||
+                selected.name?.charAt(0)}
+            </div>
+
+            <p className="eyebrow">University details</p>
+
+            <h2>{selected.name}</h2>
+
+            <p className="modal-location">
+              {selected.location || selected.city}
+              {selected.country ? `, ${selected.country}` : ""}
+            </p>
+
+            <p className="modal-intro">
+              Explore the available study levels and academic subjects
+              associated with this university.
+            </p>
+
+            <div className="modal-info-grid">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#f8d943]">
-                  University details
-                </p>
-                <h2 className="mt-3 text-2xl font-bold">{selected.name}</h2>
-                <p className="mt-2 text-sm text-[#9999a6]">
-                  {selected.location || selected.city}
-                  {selected.country ? `, ${selected.country}` : ""}
-                </p>
+                <span>University type</span>
+                <strong>{selected.type || "Not specified"}</strong>
               </div>
 
-              <button
-                onClick={() => setSelected(null)}
-                className="rounded-full border border-[#34343e] px-3 py-2 text-sm text-[#a4a4b0] hover:text-white"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="mt-7 grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div className="rounded-xl bg-[#101116] p-4">
-                <p className="text-xs text-[#858592]">University type</p>
-                <p className="mt-2 text-sm font-semibold">
-                  {selected.type || "Not specified"}
-                </p>
-              </div>
-
-              <div className="rounded-xl bg-[#101116] p-4">
-                <p className="text-xs text-[#858592]">Location</p>
-                <p className="mt-2 text-sm font-semibold">
+              <div>
+                <span>Location</span>
+                <strong>
                   {selected.location || selected.city || "Not specified"}
-                </p>
+                </strong>
               </div>
             </div>
 
-            <div className="mt-6">
-              <h3 className="text-sm font-semibold">Available study levels</h3>
-              <div className="mt-3 flex flex-wrap gap-2">
+            <div className="modal-subjects">
+              <span>Available study levels</span>
+
+              <div className="university-subjects">
                 {(selected.levels || []).length > 0 ? (
-                  selected.levels.map((item) => (
-                    <span
-                      key={item}
-                      className="rounded-full bg-[#7770ff]/10 px-3 py-2 text-xs text-[#aaa5ff]"
-                    >
-                      {item}
+                  selected.levels.map((item, index) => (
+                    <span key={`${selected.id}-modal-level-${index}`}>
+                      {typeof item === "string" ? item : item?.name || item?.title}
                     </span>
                   ))
                 ) : (
-                  <p className="text-xs text-[#858592]">Not specified</p>
+                  <span>Not specified</span>
                 )}
               </div>
             </div>
 
-            <div className="mt-6">
-              <h3 className="text-sm font-semibold">Subjects</h3>
-              <div className="mt-3 flex flex-wrap gap-2">
+            <div className="modal-subjects">
+              <span>Subjects</span>
+
+              <div className="university-subjects">
                 {(selected.subjects || []).length > 0 ? (
-                  selected.subjects.map((item) => (
-                    <span
-                      key={item}
-                      className="rounded-full bg-[#292a33] px-3 py-2 text-xs text-[#c7c6ce]"
-                    >
-                      {item}
+                  selected.subjects.map((item, index) => (
+                    <span key={`${selected.id}-modal-subject-${index}`}>
+                      {typeof item === "string" ? item : item?.name || item?.title}
                     </span>
                   ))
                 ) : (
-                  <p className="text-xs text-[#858592]">Not specified</p>
+                  <span>Not specified</span>
                 )}
               </div>
             </div>
 
-            <div className="mt-7 flex flex-wrap gap-3">
+            <div className="official-info-note">
+              <strong>Admission information</strong>
+              <p>
+                Admission requirements and application deadlines can
+                change. Visit the university's official website to
+                verify the latest information.
+              </p>
+            </div>
+
+            <div className="modal-actions">
               <button
+                className="details-button"
                 onClick={() => toggleSaved(selected)}
                 disabled={savingId === selected.id}
-                className={`rounded-xl px-5 py-3 text-sm font-semibold transition disabled:opacity-50 ${
-                  saved.includes(selected.id)
-                    ? "border border-[#f8d943] bg-transparent text-[#f8d943]"
-                    : "bg-[#f8d943] text-[#101116]"
-                }`}
               >
                 {saved.includes(selected.id)
                   ? "♥ Saved"
@@ -672,8 +766,8 @@ export default function UniversitiesPage() {
               </button>
 
               <button
+                className="secondary-button compare-button"
                 onClick={() => toggleCompare(selected.id)}
-                className="rounded-xl border border-[#34343e] px-5 py-3 text-sm font-semibold text-[#c7c6ce] transition hover:border-[#7770ff]"
               >
                 {compare.includes(selected.id)
                   ? "Remove from comparison"
@@ -681,34 +775,74 @@ export default function UniversitiesPage() {
               </button>
             </div>
 
-            <div className="mt-7 border-t border-[#292a33] pt-5">
-              <h3 className="text-sm font-semibold">Related career paths</h3>
-              <div className="mt-3">
-                {getCareersForUniversity(selected).length > 0 ? (
-                  <div className="flex flex-wrap gap-2">
-                    {getCareersForUniversity(selected).map((career) => (
-                      <span
-                        key={career}
-                        className="rounded-full bg-[#7770ff]/10 px-3 py-2 text-xs text-[#aaa5ff]"
-                      >
-                        {career}
-                      </span>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-xs text-[#858592]">
-                    Explore the Career Explorer to discover related paths.
-                  </p>
-                )}
+            <div className="modal-subjects">
+              <span>Related career paths</span>
 
-                <Link
-                  href="/careers"
-                  className="mt-4 inline-flex text-xs font-semibold text-[#f8d943] hover:text-white"
-                >
-                  Explore Career Explorer →
-                </Link>
-              </div>
+              {relatedCareers.length > 0 ? (
+                <div className="university-subjects">
+                  {relatedCareers.map((career, index) => (
+                    <span key={`${selected.id}-career-${index}`}>
+                      {getCareerName(career)}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <p className="modal-intro">
+                  Explore the Career Explorer to discover related paths.
+                </p>
+              )}
+
+              <Link href="/careers" className="reset-button">
+                Explore Career Explorer →
+              </Link>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* LOGIN / SIGNUP POPUP */}
+      {showAuthPrompt && (
+        <div
+          className="university-modal-backdrop"
+          onClick={() => setShowAuthPrompt(false)}
+        >
+          <div
+            className="university-modal auth-prompt-modal"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <button
+              className="modal-close"
+              onClick={() => setShowAuthPrompt(false)}
+              aria-label="Close login prompt"
+            >
+              ×
+            </button>
+
+            <div className="university-modal-monogram">✦</div>
+
+            <p className="eyebrow">Your journey starts here</p>
+
+            <h2>Create your Onkur account.</h2>
+
+            <p className="modal-intro">
+              Join Onkur to explore university details, save your
+              favourite universities, and build your personal academic
+              shortlist.
+            </p>
+
+            <div className="modal-actions">
+              <Link href="/login" className="details-button">
+                Log in
+              </Link>
+
+              <Link href="/signup" className="compare-button">
+                Create an account
+              </Link>
+            </div>
+
+            <p className="modal-intro" style={{ textAlign: "center" }}>
+              You can continue browsing universities without an account.
+            </p>
           </div>
         </div>
       )}
