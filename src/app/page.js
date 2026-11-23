@@ -80,7 +80,7 @@ export default function Home() {
           <a href="/universities">Universities</a>
           <a href="/careers">Careers</a>
           <a href="/develop">Develop</a>
-          <a href="#connect">Connect</a>
+          <a href="/connect">Connect</a>
         </nav>
 
         <div className="nav-actions">
@@ -402,7 +402,7 @@ export default function Home() {
           <a href="/universities">Universities</a>
           <a href="/careers">Careers</a>
           <a href="/develop">Develop</a>
-          <a href="#connect">Connect</a>
+          <a href="/connect">Connect</a>
         </div>
       </footer>
     </>
