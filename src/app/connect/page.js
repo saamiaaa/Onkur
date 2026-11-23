@@ -1,8 +1,11 @@
 
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
 const students = [
   {
@@ -124,6 +127,9 @@ const trends = [
 const filters = ["All Posts", "Discussions", "Projects", "Opportunities"];
 
 export default function ConnectPage() {
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
   const [posts, setPosts] = useState(initialPosts);
   const [activeFilter, setActiveFilter] = useState("All Posts");
   const [search, setSearch] = useState("");
@@ -135,6 +141,40 @@ export default function ConnectPage() {
   const [newPost, setNewPost] = useState("");
   const [activeTab, setActiveTab] = useState("Feed");
   const [notice, setNotice] = useState("");
+
+  // Check whether the user is signed in.
+  useEffect(() => {
+    let isMounted = true;
+
+    async function checkAuthentication() {
+      try {
+        const response = await fetch(`${API_URL}/auth/me`, {
+          method: "GET",
+          credentials: "include",
+        });
+
+        if (isMounted) {
+          setIsAuthenticated(response.ok);
+        }
+      } catch (error) {
+        console.error("Authentication check failed:", error);
+
+        if (isMounted) {
+          setIsAuthenticated(false);
+        }
+      } finally {
+        if (isMounted) {
+          setIsCheckingAuth(false);
+        }
+      }
+    }
+
+    checkAuthentication();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const filteredPosts = useMemo(() => {
     return posts.filter((post) => {
@@ -226,6 +266,82 @@ export default function ConnectPage() {
     setCommenting(null);
     setNotice("Comment added!");
     setTimeout(() => setNotice(""), 2500);
+  }
+
+  // Show a loading screen while checking authentication.
+  if (isCheckingAuth) {
+    return (
+      <main className="connect-page">
+        <div className="connect-container">
+          <div className="connect-empty-state">
+            <h3>Checking your account...</h3>
+            <p>Please wait while we verify your sign-in.</p>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  // Show the sign-in screen if the user is not authenticated.
+  if (!isAuthenticated) {
+    return (
+      <main className="connect-page">
+        <header className="connect-navbar">
+          <Link href="/" className="connect-logo">
+            onkur<span>.</span>
+          </Link>
+        </header>
+
+        <div className="connect-container">
+          <section
+            className="connect-welcome"
+            style={{
+              minHeight: "70vh",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              textAlign: "center",
+            }}
+          >
+            <div>
+              <div className="connect-eyebrow">
+                <span className="connect-eyebrow-dot" />
+                YOUR STUDENT COMMUNITY
+              </div>
+
+              <h1>
+                Your community
+                <br />
+                is waiting to <span>meet you.</span>
+              </h1>
+
+              <p>
+                Please sign in to Onkur to connect with students,
+                share ideas and explore opportunities.
+              </p>
+
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "center",
+                  gap: "12px",
+                  marginTop: "28px",
+                  flexWrap: "wrap",
+                }}
+              >
+                <Link href="/login" className="connect-create-button">
+                  Sign in to continue ↗
+                </Link>
+
+                <Link href="/signup" className="connect-dashboard-link">
+                  Create an account
+                </Link>
+              </div>
+            </div>
+          </section>
+        </div>
+      </main>
+    );
   }
 
   return (
@@ -351,7 +467,7 @@ export default function ConnectPage() {
                     }
                   }}
                 >
-                  <span>{icon}</span> 
+                  <span>{icon}</span>
                   {label}
                   {label === "My Connections" && (
                     <small>{connected.length}</small>

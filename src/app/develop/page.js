@@ -5,6 +5,9 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+
 const learningPaths = [
   {
     id: "software",
@@ -71,8 +74,13 @@ const stages = [
   { id: "portfolio", title: "Show your skills", subtitle: "Prepare your portfolio", number: "04" },
 ];
 
+const defaultPathProgress = {
+  completedSkills: [],
+  completedProjects: [],
+  activeStage: "foundation",
+};
+
 export default function DevelopPage() {
-  const API_URL = "http://localhost:5000/api";
   const router = useRouter();
 
   const [selectedPath, setSelectedPath] = useState("software");
@@ -85,12 +93,13 @@ export default function DevelopPage() {
   const [isLoadingProgress, setIsLoadingProgress] = useState(true);
   const [saveError, setSaveError] = useState("");
 
-  const path = learningPaths.find((item) => item.id === selectedPath);
+  const path = learningPaths.find((item) => item.id === selectedPath) || learningPaths[0];
+
   const totalTasks = path.skills.length + path.projects.length;
   const completedTasks = completedSkills.length + completedProjects.length;
   const progress = Math.round((completedTasks / totalTasks) * 100);
 
-  // Load this user's saved development progress.
+  // Load the logged-in user's development progress.
   useEffect(() => {
     let isMounted = true;
 
@@ -103,7 +112,6 @@ export default function DevelopPage() {
         if (!authResponse.ok) {
           if (isMounted) {
             setIsAuthenticated(false);
-            setIsLoadingProgress(false);
           }
           return;
         }
@@ -118,7 +126,6 @@ export default function DevelopPage() {
 
         const dashboardData = await dashboardResponse.json();
         const savedDevelopment = dashboardData.dashboard?.development || {};
-
         const savedPaths = savedDevelopment.paths || {};
 
         const savedPath = learningPaths.some(
@@ -127,25 +134,26 @@ export default function DevelopPage() {
           ? savedDevelopment.selectedPath
           : "software";
 
-        const currentProgress = savedPaths[savedPath] || {
-          completedSkills: savedDevelopment.completedSkills || [],
-          completedProjects: savedDevelopment.completedProjects || [],
-          activeStage: savedDevelopment.activeStage || "foundation",
-        };
+        const savedPathProgress =
+          savedPaths[savedPath] || defaultPathProgress;
+
+        const validStage = stages.some(
+          (stage) => stage.id === savedPathProgress.activeStage
+        )
+          ? savedPathProgress.activeStage
+          : "foundation";
 
         if (isMounted) {
           setIsAuthenticated(true);
           setProgressByPath(savedPaths);
           setSelectedPath(savedPath);
-          setCompletedSkills(currentProgress.completedSkills || []);
-          setCompletedProjects(currentProgress.completedProjects || []);
-          setActiveStage(currentProgress.activeStage || "foundation");
+          setCompletedSkills(savedPathProgress.completedSkills || []);
+          setCompletedProjects(savedPathProgress.completedProjects || []);
+          setActiveStage(validStage);
         }
       } catch (error) {
         if (isMounted) {
-          setSaveError(
-            error.message || "Unable to load your learning progress."
-          );
+          setSaveError(error.message || "Unable to load your learning progress.");
         }
       } finally {
         if (isMounted) {
@@ -161,7 +169,7 @@ export default function DevelopPage() {
     };
   }, []);
 
-  // Save development data to the logged-in user's account.
+  // Save development progress to the logged-in user's dashboard.
   async function saveDevelopmentData(nextSelectedPath, nextPaths) {
     if (!isAuthenticated) {
       router.push("/login");
@@ -188,21 +196,22 @@ export default function DevelopPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(
-          data.message || "Unable to save your learning progress."
-        );
+        throw new Error(data.message || "Unable to save your learning progress.");
       }
 
       return true;
     } catch (error) {
-      setSaveError(
-        error.message || "Unable to save your learning progress."
-      );
+      setSaveError(error.message || "Unable to save your learning progress.");
       return false;
     }
   }
 
   function changePath(id) {
+    if (!isAuthenticated) {
+      router.push("/login");
+      return;
+    }
+
     const nextPaths = {
       ...progressByPath,
       [selectedPath]: {
@@ -212,21 +221,21 @@ export default function DevelopPage() {
       },
     };
 
-    const nextProgress = nextPaths[id] || {
-      completedSkills: [],
-      completedProjects: [],
-      activeStage: "foundation",
-    };
+    const nextProgress = nextPaths[id] || defaultPathProgress;
+
+    const validStage = stages.some(
+      (stage) => stage.id === nextProgress.activeStage
+    )
+      ? nextProgress.activeStage
+      : "foundation";
 
     setProgressByPath(nextPaths);
     setSelectedPath(id);
     setCompletedSkills(nextProgress.completedSkills || []);
     setCompletedProjects(nextProgress.completedProjects || []);
-    setActiveStage(nextProgress.activeStage || "foundation");
+    setActiveStage(validStage);
 
-    if (isAuthenticated) {
-      saveDevelopmentData(id, nextPaths);
-    }
+    saveDevelopmentData(id, nextPaths);
   }
 
   function toggleSkill(skill) {
@@ -296,6 +305,13 @@ export default function DevelopPage() {
     setProgressByPath(nextPaths);
     saveDevelopmentData(selectedPath, nextPaths);
   }
+
+  const currentStageIndex = stages.findIndex(
+    (stage) => stage.id === activeStage
+  );
+
+  const currentStage =
+    stages.find((stage) => stage.id === activeStage) || stages[0];
 
   return (
     <main className="develop-page">
@@ -466,6 +482,7 @@ export default function DevelopPage() {
               }`}
               onClick={() => changePath(item.id)}
               aria-pressed={selectedPath === item.id}
+              disabled={isLoadingProgress}
             >
               <div className="develop-path-card-top">
                 <span className="develop-path-icon">{item.icon}</span>
@@ -525,6 +542,7 @@ export default function DevelopPage() {
                   activeStage === stage.id ? "stage-active" : ""
                 }`}
                 onClick={() => changeStage(stage.id)}
+                disabled={isLoadingProgress}
               >
                 <span className="stage-number">{stage.number}</span>
                 <span className="stage-copy">
@@ -539,10 +557,8 @@ export default function DevelopPage() {
           <div className="roadmap-stage-detail">
             <div className="roadmap-stage-detail-heading">
               <div>
-                <span>
-                  STAGE {stages.findIndex((s) => s.id === activeStage) + 1} OF 4
-                </span>
-                <h3>{stages.find((s) => s.id === activeStage).title}</h3>
+                <span>STAGE {currentStageIndex + 1} OF 4</span>
+                <h3>{currentStage.title}</h3>
               </div>
               <span>✦</span>
             </div>
@@ -555,6 +571,7 @@ export default function DevelopPage() {
                       type="checkbox"
                       checked={completedProjects.includes(project.name)}
                       onChange={() => toggleProject(project.name)}
+                      disabled={isLoadingProgress}
                     />
                     <span className="task-checkmark" />
                     <span className="task-copy">
@@ -588,6 +605,7 @@ export default function DevelopPage() {
                         type="checkbox"
                         checked={completedSkills.includes(skill)}
                         onChange={() => toggleSkill(skill)}
+                        disabled={isLoadingProgress}
                       />
                       <span className="task-checkmark" />
                       <span className="task-copy">
@@ -682,6 +700,7 @@ export default function DevelopPage() {
                       ? "project-done"
                       : ""
                   }
+                  disabled={isLoadingProgress}
                 >
                   {completedProjects.includes(project.name)
                     ? "Completed ✓"
