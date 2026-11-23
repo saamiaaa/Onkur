@@ -58,6 +58,7 @@ export default function DashboardPage() {
   const [authLoading, setAuthLoading] = useState(true);
   const [authError, setAuthError] = useState("");
   const [saveError, setSaveError] = useState("");
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   // LOAD THE LOGGED-IN USER AND THEIR DASHBOARD FROM MONGODB
   useEffect(() => {
@@ -65,14 +66,10 @@ export default function DashboardPage() {
 
     async function loadDashboard() {
       try {
-        // First verify the user's login session.
-        const authResponse = await fetch(
-          `${API_URL}/auth/me`,
-          {
-            method: "GET",
-            credentials: "include",
-          }
-        );
+        const authResponse = await fetch(`${API_URL}/auth/me`, {
+          method: "GET",
+          credentials: "include",
+        });
 
         if (authResponse.status === 401) {
           router.replace("/login");
@@ -86,14 +83,10 @@ export default function DashboardPage() {
         const authData = await authResponse.json();
         const user = authData.user || authData;
 
-        // Then retrieve this specific user's dashboard.
-        const dashboardResponse = await fetch(
-          `${API_URL}/dashboard`,
-          {
-            method: "GET",
-            credentials: "include",
-          }
-        );
+        const dashboardResponse = await fetch(`${API_URL}/dashboard`, {
+          method: "GET",
+          credentials: "include",
+        });
 
         if (dashboardResponse.status === 401) {
           router.replace("/login");
@@ -109,35 +102,16 @@ export default function DashboardPage() {
 
         if (!isMounted) return;
 
-        // AUTHENTICATED USER PROFILE
         setProfile({
-          full_name:
-            user.fullName ||
-            user.full_name ||
-            "Student",
-
-          university:
-            user.university ||
-            "University not added",
-
-          degree:
-            user.degree ||
-            "Degree not added",
-
-          year:
-            user.year ||
-            "Year not added",
-
-          interests: Array.isArray(user.interests)
-            ? user.interests
-            : [],
+          full_name: user.fullName || user.full_name || "Student",
+          university: user.university || "University not added",
+          degree: user.degree || "Degree not added",
+          year: user.year || "Year not added",
+          interests: Array.isArray(user.interests) ? user.interests : [],
         });
 
-        // ACCOUNT-SPECIFIC DASHBOARD DATA
         setTasks(
-          Array.isArray(dashboard.tasks)
-            ? dashboard.tasks
-            : initialTasks
+          Array.isArray(dashboard.tasks) ? dashboard.tasks : initialTasks
         );
 
         setUniversities(
@@ -177,17 +151,14 @@ export default function DashboardPage() {
     try {
       setSaveError("");
 
-      const response = await fetch(
-        `${API_URL}/dashboard`,
-        {
-          method: "PATCH",
-          credentials: "include",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(updates),
-        }
-      );
+      const response = await fetch(`${API_URL}/dashboard`, {
+        method: "PATCH",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(updates),
+      });
 
       if (response.status === 401) {
         router.replace("/login");
@@ -197,15 +168,36 @@ export default function DashboardPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(
-          data.message || "Could not save your changes."
-        );
+        throw new Error(data.message || "Could not save your changes.");
       }
 
       return true;
     } catch (error) {
       setSaveError(error.message);
       return false;
+    }
+  }
+
+  // LOG OUT THE CURRENT USER
+  async function handleLogout() {
+    try {
+      setIsLoggingOut(true);
+      setSaveError("");
+
+      const response = await fetch(`${API_URL}/auth/logout`, {
+        method: "POST",
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        throw new Error("Unable to log out. Please try again.");
+      }
+
+      router.replace("/");
+      router.refresh();
+    } catch (error) {
+      setSaveError(error.message);
+      setIsLoggingOut(false);
     }
   }
 
@@ -230,16 +222,12 @@ export default function DashboardPage() {
   // TOGGLE TASK AND SAVE IT TO MONGODB
   async function toggleTask(id) {
     const updated = tasks.map((task) =>
-      task.id === id
-        ? { ...task, done: !task.done }
-        : task
+      task.id === id ? { ...task, done: !task.done } : task
     );
 
     setTasks(updated);
 
-    const saved = await saveDashboard({
-      tasks: updated,
-    });
+    const saved = await saveDashboard({ tasks: updated });
 
     if (!saved) {
       setTasks(tasks);
@@ -254,18 +242,14 @@ export default function DashboardPage() {
 
     setUniversities(updated);
 
-    const saved = await saveDashboard({
-      universities: updated,
-    });
+    const saved = await saveDashboard({ universities: updated });
 
     if (!saved) {
       setUniversities(universities);
     }
   }
 
-  const displayedTasks = showAllTasks
-    ? tasks
-    : tasks.slice(0, 3);
+  const displayedTasks = showAllTasks ? tasks : tasks.slice(0, 3);
 
   const developmentSkills = development?.completedSkills || [];
   const developmentProjects = development?.completedProjects || [];
@@ -324,17 +308,13 @@ export default function DashboardPage() {
           onkur<span>.</span>
         </Link>
 
-        <div className="dashboard-sidebar-label">
-          WORKSPACE
-        </div>
+        <div className="dashboard-sidebar-label">WORKSPACE</div>
 
         <nav className="dashboard-nav">
           <Link
             href="#overview"
             className={activeNav === "overview" ? "active" : ""}
-            onClick={(event) =>
-              navigateToSection(event, "overview")
-            }
+            onClick={(event) => navigateToSection(event, "overview")}
           >
             <span>▦</span> Overview
           </Link>
@@ -342,9 +322,7 @@ export default function DashboardPage() {
           <Link
             href="#universities"
             className={activeNav === "universities" ? "active" : ""}
-            onClick={(event) =>
-              navigateToSection(event, "universities")
-            }
+            onClick={(event) => navigateToSection(event, "universities")}
           >
             <span>⌂</span> Universities
           </Link>
@@ -352,9 +330,7 @@ export default function DashboardPage() {
           <Link
             href="#careers"
             className={activeNav === "careers" ? "active" : ""}
-            onClick={(event) =>
-              navigateToSection(event, "careers")
-            }
+            onClick={(event) => navigateToSection(event, "careers")}
           >
             <span>◎</span> Career explorer
           </Link>
@@ -362,9 +338,7 @@ export default function DashboardPage() {
           <Link
             href="#development"
             className={activeNav === "development" ? "active" : ""}
-            onClick={(event) =>
-              navigateToSection(event, "development")
-            }
+            onClick={(event) => navigateToSection(event, "development")}
           >
             <span>↗</span> My development
           </Link>
@@ -372,25 +346,19 @@ export default function DashboardPage() {
           <Link
             href="#community"
             className={activeNav === "community" ? "active" : ""}
-            onClick={(event) =>
-              navigateToSection(event, "community")
-            }
+            onClick={(event) => navigateToSection(event, "community")}
           >
             <span>♧</span> Community
           </Link>
         </nav>
 
         <div className="dashboard-sidebar-bottom">
-          <div className="dashboard-sidebar-label">
-            YOUR JOURNEY
-          </div>
+          <div className="dashboard-sidebar-label">YOUR JOURNEY</div>
 
           <div className="dashboard-sidebar-tip">
             <div className="dashboard-tip-icon">✦</div>
             <h4>Small steps matter.</h4>
-            <p>
-              Your future is built one decision at a time.
-            </p>
+            <p>Your future is built one decision at a time.</p>
             <Link href="/develop">
               Continue learning <span>↗</span>
             </Link>
@@ -423,13 +391,28 @@ export default function DashboardPage() {
                 .join("")
                 .toUpperCase()}
             </div>
+
+            <button
+              onClick={handleLogout}
+              disabled={isLoggingOut}
+              style={{
+                background: "transparent",
+                border: "1px solid var(--border)",
+                color: "var(--foreground)",
+                padding: "9px 15px",
+                borderRadius: "8px",
+                cursor: isLoggingOut ? "not-allowed" : "pointer",
+                fontSize: "12px",
+                opacity: isLoggingOut ? 0.6 : 1,
+                whiteSpace: "nowrap",
+              }}
+            >
+              {isLoggingOut ? "Logging out..." : "Log Out ↗"}
+            </button>
           </div>
         </header>
 
         <div className="dashboard-content">
-
-          {/* SAVE ERROR MESSAGE */}
-
           {saveError && (
             <div
               role="alert"
@@ -447,16 +430,13 @@ export default function DashboardPage() {
           )}
 
           {/* WELCOME AND PROFILE */}
-
           <section
             id="overview"
             className="dashboard-welcome"
             style={{ scrollMarginTop: 24 }}
           >
             <div>
-              <p className="dashboard-eyebrow">
-                YOUR PERSONAL SPACE
-              </p>
+              <p className="dashboard-eyebrow">YOUR PERSONAL SPACE</p>
 
               <h1>
                 Welcome back, {profile.full_name.split(" ")[0]}
@@ -479,19 +459,12 @@ export default function DashboardPage() {
           </section>
 
           {/* STUDENT INFORMATION */}
-
-          <section
-            className="dashboard-panel"
-            style={{ marginBottom: 18 }}
-          >
+          <section className="dashboard-panel" style={{ marginBottom: 18 }}>
             <div className="dashboard-panel-heading">
               <div>
-                <p className="dashboard-eyebrow">
-                  YOUR STUDENT PROFILE
-                </p>
+                <p className="dashboard-eyebrow">YOUR STUDENT PROFILE</p>
                 <h2>{profile.full_name}</h2>
               </div>
-
               <span className="dashboard-sparkle">✦</span>
             </div>
 
@@ -514,9 +487,7 @@ export default function DashboardPage() {
             </div>
 
             <div style={{ marginTop: 15 }}>
-              <p className="dashboard-eyebrow">
-                AREAS OF INTEREST
-              </p>
+              <p className="dashboard-eyebrow">AREAS OF INTEREST</p>
 
               <div
                 style={{
@@ -548,7 +519,6 @@ export default function DashboardPage() {
           </section>
 
           {/* OVERVIEW STATS */}
-
           <section className="dashboard-stats">
             <article className="dashboard-stat-card">
               <div className="dashboard-stat-top">
@@ -561,10 +531,7 @@ export default function DashboardPage() {
               </strong>
 
               <p>Universities in your shortlist</p>
-
-              <Link href="/universities">
-                Explore universities ↗
-              </Link>
+              <Link href="/universities">Explore universities ↗</Link>
             </article>
 
             <article className="dashboard-stat-card">
@@ -578,10 +545,7 @@ export default function DashboardPage() {
               </strong>
 
               <p>Career paths you've explored</p>
-
-              <Link href="/careers">
-                Explore careers ↗
-              </Link>
+              <Link href="/careers">Explore careers ↗</Link>
             </article>
 
             <article className="dashboard-stat-card">
@@ -604,22 +568,17 @@ export default function DashboardPage() {
           </section>
 
           {/* TASKS AND CAREER EXPLORER */}
-
           <div className="dashboard-section-grid">
             <section className="dashboard-panel dashboard-tasks-panel">
               <div className="dashboard-panel-heading">
                 <div>
-                  <p className="dashboard-eyebrow">
-                    STAY ON TRACK
-                  </p>
+                  <p className="dashboard-eyebrow">STAY ON TRACK</p>
                   <h2>Your next steps</h2>
                 </div>
 
                 <button
                   className="dashboard-text-button"
-                  onClick={() =>
-                    setShowAllTasks(!showAllTasks)
-                  }
+                  onClick={() => setShowAllTasks(!showAllTasks)}
                 >
                   {showAllTasks ? "Show less ↑" : "View all →"}
                 </button>
@@ -661,9 +620,7 @@ export default function DashboardPage() {
                       <small>{task.detail}</small>
                     </span>
 
-                    <span className="dashboard-task-arrow">
-                      ↗
-                    </span>
+                    <span className="dashboard-task-arrow">↗</span>
                   </label>
                 ))}
               </div>
@@ -681,7 +638,6 @@ export default function DashboardPage() {
                   </p>
                   <h2>Career interests</h2>
                 </div>
-
                 <span className="dashboard-sparkle">✦</span>
               </div>
 
@@ -737,7 +693,6 @@ export default function DashboardPage() {
           </div>
 
           {/* UNIVERSITIES */}
-
           <section
             id="universities"
             className="dashboard-panel dashboard-universities-panel"
@@ -745,9 +700,7 @@ export default function DashboardPage() {
           >
             <div className="dashboard-panel-heading">
               <div>
-                <p className="dashboard-eyebrow">
-                  YOUR DISCOVERIES
-                </p>
+                <p className="dashboard-eyebrow">YOUR DISCOVERIES</p>
                 <h2>Your university shortlist</h2>
               </div>
 
@@ -771,8 +724,7 @@ export default function DashboardPage() {
                         university.color || "yellow"
                       }`}
                     >
-                      {university.short ||
-                        university.name?.slice(0, 3)}
+                      {university.short || university.name?.slice(0, 3)}
                     </div>
 
                     <div className="dashboard-university-info">
@@ -782,16 +734,12 @@ export default function DashboardPage() {
                           university.city ||
                           university.country}
                       </small>
-                      <span>
-                        {university.type || "University"}
-                      </span>
+                      <span>{university.type || "University"}</span>
                     </div>
 
                     <button
                       className="dashboard-remove-university"
-                      onClick={() =>
-                        removeUniversity(university.name)
-                      }
+                      onClick={() => removeUniversity(university.name)}
                       aria-label={`Remove ${university.name}`}
                       title="Remove from shortlist"
                     >
@@ -818,20 +766,14 @@ export default function DashboardPage() {
           </section>
 
           {/* DEVELOPMENT */}
-
           <section
             id="development"
             className="dashboard-panel"
-            style={{
-              marginBottom: 17,
-              scrollMarginTop: 24,
-            }}
+            style={{ marginBottom: 17, scrollMarginTop: 24 }}
           >
             <div className="dashboard-panel-heading">
               <div>
-                <p className="dashboard-eyebrow">
-                  BUILD YOUR SKILLS
-                </p>
+                <p className="dashboard-eyebrow">BUILD YOUR SKILLS</p>
                 <h2>My development</h2>
               </div>
 
@@ -898,28 +840,20 @@ export default function DashboardPage() {
                   </p>
                 </div>
 
-                <Link href="/develop">
-                  Explore learning paths →
-                </Link>
+                <Link href="/develop">Explore learning paths →</Link>
               </div>
             )}
           </section>
 
           {/* COMMUNITY */}
-
           <section
             id="community"
             className="dashboard-panel"
-            style={{
-              marginBottom: 17,
-              scrollMarginTop: 24,
-            }}
+            style={{ marginBottom: 17, scrollMarginTop: 24 }}
           >
             <div className="dashboard-panel-heading">
               <div>
-                <p className="dashboard-eyebrow">
-                  YOUR STUDENT NETWORK
-                </p>
+                <p className="dashboard-eyebrow">YOUR STUDENT NETWORK</p>
                 <h2>Community activity</h2>
               </div>
 
@@ -953,9 +887,7 @@ export default function DashboardPage() {
                   <div className="dashboard-stat-top">
                     <span>MENTORSHIP REQUESTS</span>
                   </div>
-                  <strong>
-                    {community.mentorshipRequests ?? 0}
-                  </strong>
+                  <strong>{community.mentorshipRequests ?? 0}</strong>
                   <p>Your mentorship activity</p>
                 </article>
               </div>
@@ -971,15 +903,12 @@ export default function DashboardPage() {
                   </p>
                 </div>
 
-                <Link href="/connect">
-                  Explore community →
-                </Link>
+                <Link href="/connect">Explore community →</Link>
               </div>
             )}
           </section>
 
           {/* FOOTER */}
-
           <footer className="dashboard-footer">
             <span>
               onkur<span className="dashboard-footer-dot">.</span>

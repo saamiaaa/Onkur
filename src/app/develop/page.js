@@ -1,8 +1,9 @@
 
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 const learningPaths = [
   {
@@ -71,42 +72,244 @@ const stages = [
 ];
 
 export default function DevelopPage() {
+  const API_URL = "http://localhost:5000/api";
+  const router = useRouter();
+
   const [selectedPath, setSelectedPath] = useState("software");
   const [completedSkills, setCompletedSkills] = useState([]);
   const [completedProjects, setCompletedProjects] = useState([]);
   const [activeStage, setActiveStage] = useState("foundation");
+
+  const [progressByPath, setProgressByPath] = useState({});
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoadingProgress, setIsLoadingProgress] = useState(true);
+  const [saveError, setSaveError] = useState("");
 
   const path = learningPaths.find((item) => item.id === selectedPath);
   const totalTasks = path.skills.length + path.projects.length;
   const completedTasks = completedSkills.length + completedProjects.length;
   const progress = Math.round((completedTasks / totalTasks) * 100);
 
+  // Load this user's saved development progress.
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadDevelopmentProgress() {
+      try {
+        const authResponse = await fetch(`${API_URL}/auth/me`, {
+          credentials: "include",
+        });
+
+        if (!authResponse.ok) {
+          if (isMounted) {
+            setIsAuthenticated(false);
+            setIsLoadingProgress(false);
+          }
+          return;
+        }
+
+        const dashboardResponse = await fetch(`${API_URL}/dashboard`, {
+          credentials: "include",
+        });
+
+        if (!dashboardResponse.ok) {
+          throw new Error("Unable to load your learning progress.");
+        }
+
+        const dashboardData = await dashboardResponse.json();
+        const savedDevelopment = dashboardData.dashboard?.development || {};
+
+        const savedPaths = savedDevelopment.paths || {};
+
+        const savedPath = learningPaths.some(
+          (item) => item.id === savedDevelopment.selectedPath
+        )
+          ? savedDevelopment.selectedPath
+          : "software";
+
+        const currentProgress = savedPaths[savedPath] || {
+          completedSkills: savedDevelopment.completedSkills || [],
+          completedProjects: savedDevelopment.completedProjects || [],
+          activeStage: savedDevelopment.activeStage || "foundation",
+        };
+
+        if (isMounted) {
+          setIsAuthenticated(true);
+          setProgressByPath(savedPaths);
+          setSelectedPath(savedPath);
+          setCompletedSkills(currentProgress.completedSkills || []);
+          setCompletedProjects(currentProgress.completedProjects || []);
+          setActiveStage(currentProgress.activeStage || "foundation");
+        }
+      } catch (error) {
+        if (isMounted) {
+          setSaveError(
+            error.message || "Unable to load your learning progress."
+          );
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoadingProgress(false);
+        }
+      }
+    }
+
+    loadDevelopmentProgress();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // Save development data to the logged-in user's account.
+  async function saveDevelopmentData(nextSelectedPath, nextPaths) {
+    if (!isAuthenticated) {
+      router.push("/login");
+      return false;
+    }
+
+    try {
+      setSaveError("");
+
+      const response = await fetch(`${API_URL}/dashboard`, {
+        method: "PATCH",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          development: {
+            selectedPath: nextSelectedPath,
+            paths: nextPaths,
+          },
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.message || "Unable to save your learning progress."
+        );
+      }
+
+      return true;
+    } catch (error) {
+      setSaveError(
+        error.message || "Unable to save your learning progress."
+      );
+      return false;
+    }
+  }
+
   function changePath(id) {
+    const nextPaths = {
+      ...progressByPath,
+      [selectedPath]: {
+        completedSkills,
+        completedProjects,
+        activeStage,
+      },
+    };
+
+    const nextProgress = nextPaths[id] || {
+      completedSkills: [],
+      completedProjects: [],
+      activeStage: "foundation",
+    };
+
+    setProgressByPath(nextPaths);
     setSelectedPath(id);
-    setCompletedSkills([]);
-    setCompletedProjects([]);
-    setActiveStage("foundation");
+    setCompletedSkills(nextProgress.completedSkills || []);
+    setCompletedProjects(nextProgress.completedProjects || []);
+    setActiveStage(nextProgress.activeStage || "foundation");
+
+    if (isAuthenticated) {
+      saveDevelopmentData(id, nextPaths);
+    }
   }
 
   function toggleSkill(skill) {
-    setCompletedSkills((current) =>
-      current.includes(skill)
-        ? current.filter((item) => item !== skill)
-        : [...current, skill]
-    );
+    if (!isAuthenticated) {
+      router.push("/login");
+      return;
+    }
+
+    const nextSkills = completedSkills.includes(skill)
+      ? completedSkills.filter((item) => item !== skill)
+      : [...completedSkills, skill];
+
+    const nextPaths = {
+      ...progressByPath,
+      [selectedPath]: {
+        completedSkills: nextSkills,
+        completedProjects,
+        activeStage,
+      },
+    };
+
+    setCompletedSkills(nextSkills);
+    setProgressByPath(nextPaths);
+    saveDevelopmentData(selectedPath, nextPaths);
   }
 
   function toggleProject(project) {
-    setCompletedProjects((current) =>
-      current.includes(project)
-        ? current.filter((item) => item !== project)
-        : [...current, project]
-    );
+    if (!isAuthenticated) {
+      router.push("/login");
+      return;
+    }
+
+    const nextProjects = completedProjects.includes(project)
+      ? completedProjects.filter((item) => item !== project)
+      : [...completedProjects, project];
+
+    const nextPaths = {
+      ...progressByPath,
+      [selectedPath]: {
+        completedSkills,
+        completedProjects: nextProjects,
+        activeStage,
+      },
+    };
+
+    setCompletedProjects(nextProjects);
+    setProgressByPath(nextPaths);
+    saveDevelopmentData(selectedPath, nextPaths);
+  }
+
+  function changeStage(stageId) {
+    if (!isAuthenticated) {
+      router.push("/login");
+      return;
+    }
+
+    const nextPaths = {
+      ...progressByPath,
+      [selectedPath]: {
+        completedSkills,
+        completedProjects,
+        activeStage: stageId,
+      },
+    };
+
+    setActiveStage(stageId);
+    setProgressByPath(nextPaths);
+    saveDevelopmentData(selectedPath, nextPaths);
   }
 
   return (
     <main className="develop-page">
       <div className="site-background" />
+
+      {saveError && (
+        <div
+          className="container"
+          role="alert"
+          style={{ color: "#ff8f8f", paddingTop: 12 }}
+        >
+          {saveError}
+        </div>
+      )}
 
       <header className="container navbar develop-navbar">
         <Link href="/" className="logo">
@@ -121,8 +324,12 @@ export default function DevelopPage() {
         </nav>
 
         <div className="nav-actions">
-          <Link href="/universities" className="login-link">Explore universities</Link>
-          <Link href="/careers" className="primary-button">Explore careers ↗</Link>
+          <Link href="/universities" className="login-link">
+            Explore universities
+          </Link>
+          <Link href="/careers" className="primary-button">
+            Explore careers ↗
+          </Link>
         </div>
       </header>
 
@@ -163,25 +370,45 @@ export default function DevelopPage() {
           </div>
           <div className="develop-float-card develop-float-one">
             <span>🎯</span>
-            <div><strong>Set a direction</strong><small>Choose your career goal</small></div>
+            <div>
+              <strong>Set a direction</strong>
+              <small>Choose your career goal</small>
+            </div>
           </div>
           <div className="develop-float-card develop-float-two">
             <span>📚</span>
-            <div><strong>Learn something</strong><small>One skill at a time</small></div>
+            <div>
+              <strong>Learn something</strong>
+              <small>One skill at a time</small>
+            </div>
           </div>
           <div className="develop-float-card develop-float-three">
             <span>🚀</span>
-            <div><strong>Build your future</strong><small>Turn skills into projects</small></div>
+            <div>
+              <strong>Build your future</strong>
+              <small>Turn skills into projects</small>
+            </div>
           </div>
         </div>
       </section>
+
+      {isLoadingProgress && (
+        <div
+          className="container"
+          style={{ paddingTop: 12, color: "var(--foreground)" }}
+        >
+          Loading your saved learning progress...
+        </div>
+      )}
 
       <section className="container develop-overview">
         <div className="develop-overview-heading">
           <div>
             <div className="eyebrow">YOUR DEVELOPMENT SPACE</div>
             <h2>A little progress goes a long way<span>.</span></h2>
-            <p>Choose a direction and start building your own learning journey.</p>
+            <p>
+              Choose a direction and start building your own learning journey.
+            </p>
           </div>
           <div className="develop-overview-tag">PERSONAL LEARNING SPACE</div>
         </div>
@@ -189,17 +416,28 @@ export default function DevelopPage() {
         <div className="develop-overview-grid">
           <article className="develop-overview-card">
             <span className="overview-card-icon">🧭</span>
-            <div><strong>Discover</strong><p>Find a direction that interests you.</p></div>
+            <div>
+              <strong>Discover</strong>
+              <p>Find a direction that interests you.</p>
+            </div>
             <Link href="/careers">Explore careers ↗</Link>
           </article>
+
           <article className="develop-overview-card">
             <span className="overview-card-icon">🎓</span>
-            <div><strong>Learn</strong><p>Connect skills with academic subjects.</p></div>
+            <div>
+              <strong>Learn</strong>
+              <p>Connect skills with academic subjects.</p>
+            </div>
             <Link href="/universities">Explore universities ↗</Link>
           </article>
+
           <article className="develop-overview-card">
             <span className="overview-card-icon">🌱</span>
-            <div><strong>Grow</strong><p>Track your learning and build projects.</p></div>
+            <div>
+              <strong>Grow</strong>
+              <p>Track your learning and build projects.</p>
+            </div>
             <a href="#my-roadmap">View roadmap ↓</a>
           </article>
         </div>
@@ -210,28 +448,38 @@ export default function DevelopPage() {
           <div>
             <div className="eyebrow">START WITH A DIRECTION</div>
             <h2>Choose your learning path<span>.</span></h2>
-            <p>Select a career direction to see its suggested skills and projects.</p>
+            <p>
+              Select a career direction to see its suggested skills and projects.
+            </p>
           </div>
-          <Link href="/careers" className="text-link">Browse all careers ↗</Link>
+          <Link href="/careers" className="text-link">
+            Browse all careers ↗
+          </Link>
         </div>
 
         <div className="develop-path-grid">
           {learningPaths.map((item) => (
             <button
               key={item.id}
-              className={`develop-path-card ${selectedPath === item.id ? "path-selected" : ""}`}
+              className={`develop-path-card ${
+                selectedPath === item.id ? "path-selected" : ""
+              }`}
               onClick={() => changePath(item.id)}
               aria-pressed={selectedPath === item.id}
             >
               <div className="develop-path-card-top">
                 <span className="develop-path-icon">{item.icon}</span>
-                {selectedPath === item.id && <span className="path-check">✓</span>}
+                {selectedPath === item.id && (
+                  <span className="path-check">✓</span>
+                )}
               </div>
               <span className="develop-path-category">{item.category}</span>
               <strong>{item.title}</strong>
               <p>{item.description}</p>
               <span className="path-card-action">
-                {selectedPath === item.id ? "Selected path ✓" : "Choose this path →"}
+                {selectedPath === item.id
+                  ? "Selected path ✓"
+                  : "Choose this path →"}
               </span>
             </button>
           ))}
@@ -270,14 +518,19 @@ export default function DevelopPage() {
           </div>
 
           <div className="roadmap-stages">
-            {stages.map((stage, index) => (
+            {stages.map((stage) => (
               <button
                 key={stage.id}
-                className={`roadmap-stage ${activeStage === stage.id ? "stage-active" : ""}`}
-                onClick={() => setActiveStage(stage.id)}
+                className={`roadmap-stage ${
+                  activeStage === stage.id ? "stage-active" : ""
+                }`}
+                onClick={() => changeStage(stage.id)}
               >
                 <span className="stage-number">{stage.number}</span>
-                <span className="stage-copy"><strong>{stage.title}</strong><small>{stage.subtitle}</small></span>
+                <span className="stage-copy">
+                  <strong>{stage.title}</strong>
+                  <small>{stage.subtitle}</small>
+                </span>
                 <span className="stage-arrow">↗</span>
               </button>
             ))}
@@ -286,7 +539,9 @@ export default function DevelopPage() {
           <div className="roadmap-stage-detail">
             <div className="roadmap-stage-detail-heading">
               <div>
-                <span>STAGE {stages.findIndex((s) => s.id === activeStage) + 1} OF 4</span>
+                <span>
+                  STAGE {stages.findIndex((s) => s.id === activeStage) + 1} OF 4
+                </span>
                 <h3>{stages.find((s) => s.id === activeStage).title}</h3>
               </div>
               <span>✦</span>
@@ -314,26 +569,39 @@ export default function DevelopPage() {
                 <span>✨</span>
                 <div>
                   <strong>Make your work visible.</strong>
-                  <p>Collect your projects, document what you learned and prepare a portfolio that shows your progress.</p>
-                  <Link href="/#connect">Discover the Onkur community ↗</Link>
+                  <p>
+                    Collect your projects, document what you learned and
+                    prepare a portfolio that shows your progress.
+                  </p>
+                  <Link href="/#connect">
+                    Discover the Onkur community ↗
+                  </Link>
                 </div>
               </div>
             ) : (
               <div className="roadmap-task-list">
-                {path.skills.slice(0, activeStage === "foundation" ? 3 : 6).map((skill, index) => (
-                  <label className="roadmap-task" key={skill}>
-                    <input
-                      type="checkbox"
-                      checked={completedSkills.includes(skill)}
-                      onChange={() => toggleSkill(skill)}
-                    />
-                    <span className="task-checkmark" />
-                    <span className="task-copy">
-                      <strong>{skill}</strong>
-                      <small>{activeStage === "foundation" ? "Foundation skill" : index < 3 ? "Practice the basics" : "Build on your knowledge"}</small>
-                    </span>
-                  </label>
-                ))}
+                {path.skills
+                  .slice(0, activeStage === "foundation" ? 3 : 6)
+                  .map((skill, index) => (
+                    <label className="roadmap-task" key={skill}>
+                      <input
+                        type="checkbox"
+                        checked={completedSkills.includes(skill)}
+                        onChange={() => toggleSkill(skill)}
+                      />
+                      <span className="task-checkmark" />
+                      <span className="task-copy">
+                        <strong>{skill}</strong>
+                        <small>
+                          {activeStage === "foundation"
+                            ? "Foundation skill"
+                            : index < 3
+                            ? "Practice the basics"
+                            : "Build on your knowledge"}
+                        </small>
+                      </span>
+                    </label>
+                  ))}
               </div>
             )}
           </div>
@@ -343,26 +611,40 @@ export default function DevelopPage() {
           <div className="roadmap-side-card">
             <div className="eyebrow">RELATED ACADEMICS</div>
             <h3>What could you study?</h3>
-            <p>Explore academic subjects connected to this learning path.</p>
+            <p>
+              Explore academic subjects connected to this learning path.
+            </p>
             <div className="related-subject-list">
               {path.subjects.map((subject) => (
-                <div key={subject}><span>◈</span>{subject}</div>
+                <div key={subject}>
+                  <span>◈</span>{subject}
+                </div>
               ))}
             </div>
-            <Link href="/universities" className="sidebar-link">Find universities ↗</Link>
+            <Link href="/universities" className="sidebar-link">
+              Find universities ↗
+            </Link>
           </div>
 
           <div className="roadmap-side-card career-side-card">
             <div className="eyebrow">CAREER CONNECTION</div>
             <h3>Explore your destination.</h3>
-            <p>Understand the roles, responsibilities and opportunities related to your chosen direction.</p>
-            <Link href="/careers" className="sidebar-link">Explore career paths ↗</Link>
+            <p>
+              Understand the roles, responsibilities and opportunities
+              related to your chosen direction.
+            </p>
+            <Link href="/careers" className="sidebar-link">
+              Explore career paths ↗
+            </Link>
           </div>
 
           <div className="roadmap-tip-card">
             <span>💡</span>
             <strong>A small reminder</strong>
-            <p>You don't need to learn everything at once. Focus on one skill, practise it and keep building.</p>
+            <p>
+              You don't need to learn everything at once. Focus on one skill,
+              practise it and keep building.
+            </p>
           </div>
         </aside>
       </section>
@@ -383,16 +665,27 @@ export default function DevelopPage() {
                 <span>PROJECT 0{index + 1}</span>
                 <span>{project.level}</span>
               </div>
-              <div className="project-illustration">{["✎", "⌘", "✧"][index]}</div>
+              <div className="project-illustration">
+                {["✎", "⌘", "✧"][index]}
+              </div>
               <h3>{project.name}</h3>
-              <p>A practical project idea for your {path.title.toLowerCase()} learning journey.</p>
+              <p>
+                A practical project idea for your {path.title.toLowerCase()}
+                learning journey.
+              </p>
               <div className="project-card-bottom">
                 <span>◷ {project.time}</span>
                 <button
                   onClick={() => toggleProject(project.name)}
-                  className={completedProjects.includes(project.name) ? "project-done" : ""}
+                  className={
+                    completedProjects.includes(project.name)
+                      ? "project-done"
+                      : ""
+                  }
                 >
-                  {completedProjects.includes(project.name) ? "Completed ✓" : "Mark complete +"}
+                  {completedProjects.includes(project.name)
+                    ? "Completed ✓"
+                    : "Mark complete +"}
                 </button>
               </div>
             </article>
@@ -403,20 +696,36 @@ export default function DevelopPage() {
       <section className="container develop-bottom-cta">
         <div>
           <div className="eyebrow">YOUR FUTURE IS A WORK IN PROGRESS</div>
-          <h2>Discover. Learn. Build.<br /><span>Become.</span></h2>
-          <p>Keep exploring your options and take the next step at your own pace.</p>
+          <h2>
+            Discover. Learn. Build.
+            <br />
+            <span>Become.</span>
+          </h2>
+          <p>
+            Keep exploring your options and take the next step at your own pace.
+          </p>
         </div>
         <div className="develop-cta-actions">
-          <Link href="/universities" className="secondary-button">Explore universities ↗</Link>
-          <Link href="/careers" className="primary-button">Explore careers ↗</Link>
+          <Link href="/universities" className="secondary-button">
+            Explore universities ↗
+          </Link>
+          <Link href="/careers" className="primary-button">
+            Explore careers ↗
+          </Link>
         </div>
       </section>
 
       <footer className="container footer develop-footer">
         <div>
-          <Link href="/" className="logo">onkur<span>.</span></Link>
-          <p style={{ marginTop: 12 }}>Find your direction. Build your future.</p>
-          <p style={{ marginTop: 8 }}>© 2026 Onkur. All rights reserved.</p>
+          <Link href="/" className="logo">
+            onkur<span>.</span>
+          </Link>
+          <p style={{ marginTop: 12 }}>
+            Find your direction. Build your future.
+          </p>
+          <p style={{ marginTop: 8 }}>
+            © 2026 Onkur. All rights reserved.
+          </p>
         </div>
         <div className="footer-links">
           <Link href="/">Home</Link>

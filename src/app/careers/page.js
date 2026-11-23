@@ -1,7 +1,7 @@
 "use client";
 
 import { getUniversitiesForCareer } from "../data/careerLinks";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { careers, assessmentOptions } from "../data/careers";
 
@@ -16,6 +16,144 @@ export default function CareerExplorer() {
   const [selectedCareer, setSelectedCareer] = useState(null);
   const [showAssessment, setShowAssessment] = useState(false);
   const [step, setStep] = useState(0);
+
+  // Account-specific saved careers
+  const [savedCareers, setSavedCareers] = useState([]);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoadingSaved, setIsLoadingSaved] = useState(true);
+  const [savingCareerId, setSavingCareerId] = useState(null);
+  const [saveError, setSaveError] = useState("");
+
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+
+  // LOAD SAVED CAREERS FROM THE LOGGED-IN USER'S ACCOUNT
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadSavedCareers() {
+      try {
+        const authResponse = await fetch(`${API_URL}/auth/me`, {
+          credentials: "include",
+        });
+
+        if (authResponse.status === 401) {
+          if (isMounted) setIsAuthenticated(false);
+          return;
+        }
+
+        if (!authResponse.ok) {
+          throw new Error("Unable to verify your account.");
+        }
+
+        if (isMounted) setIsAuthenticated(true);
+
+        const response = await fetch(`${API_URL}/dashboard`, {
+          credentials: "include",
+        });
+
+        if (!response.ok) {
+          throw new Error("Unable to load your saved careers.");
+        }
+
+        const data = await response.json();
+        const saved = data.dashboard?.careerInterests || [];
+
+        if (isMounted) {
+          setSavedCareers(
+            saved
+              .map((item) =>
+                careers.find(
+                  (career) =>
+                    career.id === item.id ||
+                    career.title === item.title
+                )
+              )
+              .filter(Boolean)
+          );
+        }
+      } catch (error) {
+        console.error("Career loading error:", error);
+
+        if (isMounted) {
+          setSaveError(error.message);
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoadingSaved(false);
+        }
+      }
+    }
+
+    loadSavedCareers();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // SAVE OR REMOVE A CAREER
+  async function toggleSavedCareer(career) {
+    if (!isAuthenticated) {
+      window.location.href = "/login";
+      return;
+    }
+
+    if (savingCareerId !== null) return;
+
+    setSaveError("");
+
+    const alreadySaved = savedCareers.some(
+      (item) => item.id === career.id
+    );
+
+    const previousSaved = savedCareers;
+
+    const updatedSaved = alreadySaved
+      ? savedCareers.filter((item) => item.id !== career.id)
+      : [...savedCareers, career];
+
+    setSavedCareers(updatedSaved);
+    setSavingCareerId(career.id);
+
+    const careerInterests = updatedSaved.map((item) => ({
+      id: item.id,
+      title: item.title,
+      category: item.category,
+      description: item.description,
+      icon: item.icon,
+      subjects: item.subjects,
+      skills: item.skills,
+      paths: item.paths,
+    }));
+
+    try {
+      const response = await fetch(`${API_URL}/dashboard`, {
+        method: "PATCH",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          careerInterests,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.message || "Unable to save this career."
+        );
+      }
+    } catch (error) {
+      console.error("Career save error:", error);
+      setSavedCareers(previousSaved);
+      setSaveError(error.message);
+    } finally {
+      setSavingCareerId(null);
+    }
+  }
 
   const categories = [
     "All",
@@ -63,7 +201,9 @@ export default function CareerExplorer() {
     if (!availableWeight) return 0;
 
     return Math.round(
-      ((interestScore + strengthScore + workScore) / availableWeight) * 100
+      ((interestScore + strengthScore + workScore) /
+        availableWeight) *
+        100
     );
   }
 
@@ -142,7 +282,9 @@ export default function CareerExplorer() {
 
         <div className="career-nav-links">
           <Link href="/universities">Universities</Link>
-          <Link href="/careers" className="active">Careers</Link>
+          <Link href="/careers" className="active">
+            Careers
+          </Link>
           <Link href="/develop">Develop</Link>
           <Link href="/connect">Connect</Link>
         </div>
@@ -184,16 +326,16 @@ export default function CareerExplorer() {
         </div>
 
         <div className="career-hero-visual">
-         <div className="career-orbit orbit-one">
-          <span className="orbit-dot dot-one"></span>
+          <div className="career-orbit orbit-one">
+            <span className="orbit-dot dot-one"></span>
           </div>
 
-        <div className="career-orbit orbit-two">
-         <span className="orbit-dot dot-two"></span>
-        </div>
+          <div className="career-orbit orbit-two">
+            <span className="orbit-dot dot-two"></span>
+          </div>
 
-        <div className="career-center-glow"></div>
-         <div className="career-center-icon">✳</div>
+          <div className="career-center-glow"></div>
+          <div className="career-center-icon">✳</div>
 
           <div className="career-floating-card float-one">
             <span>💻</span>
@@ -244,6 +386,59 @@ export default function CareerExplorer() {
         </div>
       </section>
 
+      {saveError && (
+        <div className="career-directory" role="alert">
+          <p className="career-disclaimer">{saveError}</p>
+        </div>
+      )}
+
+      {/* SAVED CAREERS */}
+      {savedCareers.length > 0 && (
+        <section className="career-matches">
+          <div className="career-section-heading">
+            <div>
+              <div className="career-eyebrow">YOUR SHORTLIST</div>
+              <h2>Careers you saved.</h2>
+              <p>Your saved career interests are linked to your account.</p>
+            </div>
+          </div>
+
+          <div className="career-match-grid">
+            {savedCareers.map((career) => (
+              <article className="career-match-card" key={career.id}>
+                <div className="career-match-top">
+                  <span className="career-match-icon">{career.icon}</span>
+                  <span className="career-match-rank">SAVED</span>
+                </div>
+
+                <h3>{career.title}</h3>
+
+                <span className="career-category-label">
+                  {career.category}
+                </span>
+
+                <button
+                  className="career-card-link"
+                  onClick={() => setSelectedCareer(career)}
+                >
+                  Explore this career ↗
+                </button>
+
+                <button
+                  className="career-card-link"
+                  disabled={savingCareerId === career.id}
+                  onClick={() => toggleSavedCareer(career)}
+                >
+                  {savingCareerId === career.id
+                    ? "Saving..."
+                    : "Remove saved career"}
+                </button>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
+
       {assessmentDone && matchedCareers.length > 0 && (
         <section className="career-matches">
           <div className="career-section-heading">
@@ -275,6 +470,7 @@ export default function CareerExplorer() {
                 </div>
 
                 <h3>{career.title}</h3>
+
                 <span className="career-category-label">
                   {career.category}
                 </span>
@@ -363,6 +559,18 @@ export default function CareerExplorer() {
 
                 <button
                   className="career-card-link"
+                  disabled={savingCareerId === career.id || isLoadingSaved}
+                  onClick={() => toggleSavedCareer(career)}
+                >
+                  {savingCareerId === career.id
+                    ? "Saving..."
+                    : savedCareers.some((item) => item.id === career.id)
+                      ? "♥ Saved · Remove"
+                      : "♡ Save career"}
+                </button>
+
+                <button
+                  className="career-card-link"
                   onClick={() => setSelectedCareer(career)}
                 >
                   Explore career ↗
@@ -414,6 +622,7 @@ export default function CareerExplorer() {
         <span>© 2026 Onkur</span>
       </footer>
 
+      {/* CAREER ASSESSMENT MODAL */}
       {showAssessment && (
         <div
           className="career-modal-backdrop"
@@ -443,14 +652,14 @@ export default function CareerExplorer() {
             </div>
 
             <h2>{currentStep.title}</h2>
+
             <p className="career-modal-subtitle">
               {currentStep.subtitle}
             </p>
 
             <div className="career-assessment-options">
               {currentStep.options.map((option) => {
-                const isSelected =
-                  currentStep.selected.includes(option.id);
+                const isSelected = currentStep.selected.includes(option.id);
 
                 return (
                   <button
@@ -516,6 +725,7 @@ export default function CareerExplorer() {
         </div>
       )}
 
+      {/* CAREER DETAILS MODAL */}
       {selectedCareer && (
         <div
           className="career-modal-backdrop"
@@ -542,36 +752,60 @@ export default function CareerExplorer() {
             </div>
 
             <h2>{selectedCareer.title}</h2>
+
             <p className="career-detail-description">
               {selectedCareer.description}
             </p>
 
+            <button
+              className="career-primary-button"
+              disabled={
+                savingCareerId === selectedCareer.id || isLoadingSaved
+              }
+              onClick={() => toggleSavedCareer(selectedCareer)}
+            >
+              {savingCareerId === selectedCareer.id
+                ? "Saving..."
+                : savedCareers.some(
+                    (item) => item.id === selectedCareer.id
+                  )
+                  ? "♥ Saved · Remove from shortlist"
+                  : "♡ Save to my career shortlist"}
+            </button>
+
             <div className="career-detail-section">
               <h3>Related academic subjects</h3>
+
               <div className="career-detail-section">
-  <h3>Universities to explore</h3>
+                <h3>Universities to explore</h3>
 
-  {getUniversitiesForCareer(selectedCareer).length > 0 ? (
-    <div className="related-university-list">
-      {getUniversitiesForCareer(selectedCareer).map((university) => (
-        <div className="related-university-item" key={university.id}>
-          <div>
-            <strong>{university.name}</strong>
-            <span>
-              {university.city}, {university.country}
-            </span>
-          </div>
+                {getUniversitiesForCareer(selectedCareer).length > 0 ? (
+                  <div className="related-university-list">
+                    {getUniversitiesForCareer(selectedCareer).map(
+                      (university) => (
+                        <div
+                          className="related-university-item"
+                          key={university.id}
+                        >
+                          <div>
+                            <strong>{university.name}</strong>
+                            <span>
+                              {university.city}, {university.country}
+                            </span>
+                          </div>
 
-          <Link href="/universities">Explore ↗</Link>
-        </div>
-      ))}
-    </div>
-  ) : (
-    <p className="career-detail-description">
-      No matching universities have been added to the directory yet.
-    </p>
-  )}
-</div>
+                          <Link href="/universities">Explore ↗</Link>
+                        </div>
+                      )
+                    )}
+                  </div>
+                ) : (
+                  <p className="career-detail-description">
+                    No matching universities have been added to the directory yet.
+                  </p>
+                )}
+              </div>
+
               <div className="career-detail-tags">
                 {selectedCareer.subjects.map((subject) => (
                   <span key={subject}>{subject}</span>
