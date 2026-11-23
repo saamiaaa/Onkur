@@ -1,0 +1,687 @@
+
+/* =========================================
+   ONKUR AI - INDEPENDENT LIQUID GLASS THEME
+   ========================================= */
+
+.onkur-ai-root {
+  --onkur-ai-violet: #8980ff;
+  --onkur-ai-lavender: #c3bdff;
+  --onkur-ai-text: #f5f3ff;
+  --onkur-ai-muted: #aaa7bd;
+
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--onkur-ai-text);
+}
+
+/* Floating launcher */
+
+.onkur-ai-root .onkur-ai-launcher {
+  position: fixed;
+  right: 26px;
+  bottom: 26px;
+  z-index: 9999;
+
+  width: 62px;
+  height: 62px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 22px;
+
+  background: linear-gradient(
+    145deg,
+    rgba(185, 175, 255, 0.9),
+    rgba(119, 112, 255, 0.85) 55%,
+    rgba(79, 67, 178, 0.9)
+  );
+
+  color: white;
+  cursor: pointer;
+
+  box-shadow:
+    0 12px 35px rgba(95, 79, 230, 0.38),
+    inset 0 1px 2px rgba(255, 255, 255, 0.6);
+
+  backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: blur(25px);
+
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.onkur-ai-root .onkur-ai-launcher:hover {
+  transform: translateY(-4px) scale(1.04);
+  box-shadow:
+    0 16px 42px rgba(95, 79, 230, 0.5),
+    inset 0 1px 2px rgba(255, 255, 255, 0.6);
+}
+
+.onkur-ai-launcher-icon {
+  font-size: 30px;
+  line-height: 1;
+}
+
+.onkur-ai-close-icon {
+  font-size: 32px;
+  font-weight: 300;
+  line-height: 1;
+}
+
+.onkur-ai-root .onkur-ai-status-dot {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+
+  width: 14px;
+  height: 14px;
+
+  border: 2px solid #171722;
+  border-radius: 50%;
+  background: #a7edc4;
+}
+
+/* Chat panel */
+
+.onkur-ai-root .onkur-ai-panel {
+  position: fixed;
+  z-index: 9998;
+  right: 24px;
+  bottom: 104px;
+
+  width: 400px;
+  height: min(640px, calc(100dvh - 130px));
+
+  display: flex;
+  flex-direction: column;
+
+  overflow: hidden;
+  isolation: isolate;
+
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 28px;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(48, 45, 72, 0.83),
+      rgba(24, 23, 38, 0.88) 45%,
+      rgba(29, 27, 48, 0.9)
+    );
+
+  color: var(--onkur-ai-text);
+
+  box-shadow:
+    0 25px 90px rgba(0, 0, 0, 0.55),
+    0 0 45px rgba(119, 112, 255, 0.15),
+    inset 0 1px 1px rgba(255, 255, 255, 0.25);
+
+  backdrop-filter: blur(35px) saturate(160%);
+  -webkit-backdrop-filter: blur(35px) saturate(160%);
+
+  animation: onkur-ai-enter 0.3s ease both;
+}
+
+@keyframes onkur-ai-enter {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.97);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Ambient reflections */
+
+.onkur-ai-root .onkur-ai-ambient {
+  position: absolute;
+  z-index: -1;
+  pointer-events: none;
+  border-radius: 50%;
+  filter: blur(65px);
+}
+
+.onkur-ai-root .onkur-ai-ambient-one {
+  width: 210px;
+  height: 210px;
+  top: -100px;
+  right: -65px;
+  background: rgba(132, 119, 255, 0.28);
+}
+
+.onkur-ai-root .onkur-ai-ambient-two {
+  width: 180px;
+  height: 180px;
+  bottom: 70px;
+  left: -110px;
+  background: rgba(165, 126, 255, 0.16);
+}
+
+/* Header */
+
+.onkur-ai-root .onkur-ai-header {
+  position: relative;
+  flex-shrink: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 17px 19px;
+
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.onkur-ai-root .onkur-ai-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.onkur-ai-root .onkur-ai-brand-icon {
+  width: 43px;
+  height: 43px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 15px;
+
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.23),
+    rgba(119, 112, 255, 0.27)
+  );
+
+  color: #dedaff;
+  font-size: 23px;
+
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.3);
+}
+
+.onkur-ai-root .onkur-ai-brand-info h2 {
+  margin: 0;
+  padding: 0;
+
+  color: white;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.4;
+  letter-spacing: 0.2px;
+}
+
+.onkur-ai-root .onkur-ai-brand-info span {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+
+  margin-top: 3px;
+
+  color: rgba(255, 255, 255, 0.58);
+  font-size: 11px;
+}
+
+.onkur-ai-root .onkur-ai-brand-info span i {
+  width: 6px;
+  height: 6px;
+  display: inline-block;
+  border-radius: 50%;
+  background: #9ce6b8;
+  box-shadow: 0 0 8px #9ce6b8;
+}
+
+.onkur-ai-root .onkur-ai-header-close {
+  width: 34px;
+  height: 34px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 11px;
+
+  background: rgba(255, 255, 255, 0.07);
+  color: rgba(255, 255, 255, 0.75);
+
+  font-size: 23px;
+  font-weight: 300;
+
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.onkur-ai-root .onkur-ai-header-close:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+}
+
+/* Conversation area */
+
+.onkur-ai-root .onkur-ai-conversation {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+
+  overflow-x: hidden;
+  overflow-y: auto;
+
+  padding: 20px 17px;
+
+  scrollbar-width: thin;
+  scrollbar-color: rgba(180, 170, 255, 0.3) transparent;
+}
+
+.onkur-ai-root .onkur-ai-conversation::-webkit-scrollbar {
+  width: 5px;
+}
+
+.onkur-ai-root .onkur-ai-conversation::-webkit-scrollbar-thumb {
+  border-radius: 10px;
+  background: rgba(180, 170, 255, 0.3);
+}
+
+/* Welcome screen */
+
+.onkur-ai-root .onkur-ai-welcome {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.onkur-ai-root .onkur-ai-welcome-icon {
+  width: 72px;
+  height: 72px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  margin: 0 auto 19px;
+
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 24px;
+
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.2),
+    rgba(119, 112, 255, 0.25),
+    rgba(255, 255, 255, 0.04)
+  );
+
+  color: #d5ceff;
+  font-size: 37px;
+
+  box-shadow:
+    0 8px 35px rgba(119, 112, 255, 0.22),
+    inset 0 1px 2px rgba(255, 255, 255, 0.35);
+}
+
+.onkur-ai-root .onkur-ai-eyebrow {
+  display: block;
+  margin-bottom: 9px;
+
+  color: #aaa2ff;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-align: center;
+}
+
+.onkur-ai-root .onkur-ai-welcome h3 {
+  margin: 0;
+  padding: 0;
+
+  color: white;
+  font-size: 23px;
+  font-weight: 700;
+  line-height: 1.35;
+  text-align: center;
+}
+
+.onkur-ai-root .onkur-ai-welcome > p {
+  max-width: 285px;
+  margin: 10px auto 25px;
+  padding: 0;
+
+  color: rgba(255, 255, 255, 0.58);
+  font-size: 12px;
+  line-height: 1.8;
+  text-align: center;
+}
+
+.onkur-ai-root .onkur-ai-suggestions-heading {
+  margin-bottom: 10px;
+
+  color: rgba(255, 255, 255, 0.42);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1.8px;
+}
+
+.onkur-ai-root .onkur-ai-suggestions {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.onkur-ai-root .onkur-ai-suggestions button {
+  width: 100%;
+  min-height: 47px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+
+  padding: 11px 14px;
+
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 15px;
+
+  background: rgba(255, 255, 255, 0.055);
+  color: rgba(255, 255, 255, 0.78);
+
+  font-family: inherit;
+  font-size: 11px;
+  line-height: 1.5;
+  text-align: left;
+
+  cursor: pointer;
+
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.07);
+
+  transition: 0.25s ease;
+}
+
+.onkur-ai-root .onkur-ai-suggestions button:hover {
+  border-color: rgba(170, 162, 255, 0.45);
+  background: rgba(119, 112, 255, 0.13);
+  color: white;
+  transform: translateY(-2px);
+}
+
+.onkur-ai-root .onkur-ai-suggestion-arrow {
+  flex-shrink: 0;
+  color: #b9b1ff;
+  font-size: 17px;
+  transition: transform 0.2s ease;
+}
+
+.onkur-ai-root .onkur-ai-suggestions button:hover .onkur-ai-suggestion-arrow {
+  transform: translateX(3px);
+}
+
+/* Messages */
+
+.onkur-ai-root .onkur-ai-message-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 15px;
+}
+
+.onkur-ai-root .onkur-ai-user-row {
+  justify-content: flex-end;
+}
+
+.onkur-ai-root .onkur-ai-assistant-row {
+  justify-content: flex-start;
+}
+
+.onkur-ai-root .onkur-ai-message-avatar {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border: 1px solid rgba(255, 255, 255, 0.17);
+  border-radius: 9px;
+
+  background: rgba(119, 112, 255, 0.22);
+  color: #d0caff;
+  font-size: 15px;
+}
+
+.onkur-ai-root .onkur-ai-message {
+  max-width: 83%;
+  padding: 11px 14px;
+
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 17px;
+
+  font-size: 12px;
+  line-height: 1.8;
+
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.09);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+}
+
+.onkur-ai-root .onkur-ai-user-message {
+  border-color: rgba(180, 170, 255, 0.32);
+  border-bottom-right-radius: 5px;
+
+  background: linear-gradient(
+    140deg,
+    rgba(137, 128, 255, 0.72),
+    rgba(91, 80, 195, 0.67)
+  );
+
+  color: white;
+}
+
+.onkur-ai-root .onkur-ai-assistant-message {
+  border-bottom-left-radius: 5px;
+  background: rgba(255, 255, 255, 0.075);
+  color: rgba(255, 255, 255, 0.88);
+}
+
+/* Typing indicator */
+
+.onkur-ai-root .onkur-ai-typing {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+
+  padding: 14px 16px;
+
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 16px;
+
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.onkur-ai-root .onkur-ai-typing span {
+  width: 6px;
+  height: 6px;
+
+  border-radius: 50%;
+  background: #b9b1ff;
+
+  animation: onkur-ai-typing 1.1s infinite ease-in-out;
+}
+
+.onkur-ai-root .onkur-ai-typing span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.onkur-ai-root .onkur-ai-typing span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes onkur-ai-typing {
+  0%, 60%, 100% {
+    opacity: 0.4;
+    transform: translateY(0);
+  }
+
+  30% {
+    opacity: 1;
+    transform: translateY(-4px);
+  }
+}
+
+/* Footer and input */
+
+.onkur-ai-root .onkur-ai-footer {
+  position: relative;
+  flex-shrink: 0;
+
+  padding: 13px 15px 14px;
+
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.onkur-ai-root .onkur-ai-input-form {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+
+  min-height: 49px;
+  padding: 5px 6px 5px 14px;
+
+  border: 1px solid rgba(255, 255, 255, 0.17);
+  border-radius: 16px;
+
+  background: rgba(255, 255, 255, 0.075);
+
+  box-shadow:
+    inset 0 2px 5px rgba(0, 0, 0, 0.14),
+    0 1px 1px rgba(255, 255, 255, 0.08);
+
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.onkur-ai-root .onkur-ai-input-form:focus-within {
+  border-color: rgba(170, 162, 255, 0.6);
+  box-shadow: 0 0 20px rgba(119, 112, 255, 0.13);
+}
+
+.onkur-ai-root .onkur-ai-input-form input {
+  width: 100%;
+  min-width: 0;
+  height: 36px;
+
+  margin: 0;
+  padding: 0;
+
+  border: none;
+  outline: none;
+  box-shadow: none;
+
+  background: transparent;
+  color: white;
+
+  font-family: inherit;
+  font-size: 12px;
+  line-height: normal;
+}
+
+.onkur-ai-root .onkur-ai-input-form input::placeholder {
+  color: rgba(255, 255, 255, 0.38);
+  opacity: 1;
+}
+
+.onkur-ai-root .onkur-ai-input-form button {
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  margin: 0;
+  padding: 0;
+
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 12px;
+
+  background: linear-gradient(
+    145deg,
+    #a39aff,
+    #7066e8
+  );
+
+  color: white;
+  font-size: 20px;
+  line-height: 1;
+
+  cursor: pointer;
+
+  box-shadow:
+    0 3px 12px rgba(119, 112, 255, 0.3),
+    inset 0 1px 1px rgba(255, 255, 255, 0.4);
+
+  transition: 0.2s ease;
+}
+
+.onkur-ai-root .onkur-ai-input-form button:hover:not(:disabled) {
+  transform: scale(1.05);
+  filter: brightness(1.12);
+}
+
+.onkur-ai-root .onkur-ai-input-form button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.onkur-ai-root .onkur-ai-footer > p {
+  margin: 9px 0 0;
+  padding: 0;
+
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 9px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+/* Responsive */
+
+@media (max-width: 480px) {
+  .onkur-ai-root .onkur-ai-launcher {
+    right: 17px;
+    bottom: 17px;
+    width: 56px;
+    height: 56px;
+    border-radius: 19px;
+  }
+
+  .onkur-ai-root .onkur-ai-panel {
+    right: 10px;
+    bottom: 84px;
+
+    width: calc(100vw - 20px);
+    height: min(620px, calc(100dvh - 105px));
+
+    border-radius: 23px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .onkur-ai-root *,
+  .onkur-ai-root *::before,
+  .onkur-ai-root *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
