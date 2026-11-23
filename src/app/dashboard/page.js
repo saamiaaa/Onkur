@@ -1,9 +1,11 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
 const defaultProfile = {
   full_name: "Student",
@@ -40,12 +42,86 @@ const initialTasks = [
   },
 ];
 
-const API_URL = "http://localhost:5000/api";
+// SMALL INLINE SVG ICONS
+function QuickIcon({ name, size = 19 }) {
+  const common = {
+    width: size,
+    height: size,
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 1.7,
+    strokeLinecap: "round",
+    strokeLinejoin: "round",
+    "aria-hidden": true,
+  };
+
+  const paths = {
+    overview: (
+      <>
+        <rect x="3" y="3" width="8" height="8" rx="1.5" />
+        <rect x="13" y="3" width="8" height="5" rx="1.5" />
+        <rect x="13" y="10" width="8" height="11" rx="1.5" />
+        <rect x="3" y="13" width="8" height="8" rx="1.5" />
+      </>
+    ),
+    profile: (
+      <>
+        <circle cx="12" cy="8" r="4" />
+        <path d="M4 21c.8-4 3.5-6 8-6s7.2 2 8 6" />
+      </>
+    ),
+    university: (
+      <>
+        <path d="m3 9 9-6 9 6" />
+        <path d="M5 10v9M9 10v9M15 10v9M19 10v9M3 21h18" />
+      </>
+    ),
+    careers: (
+      <>
+        <circle cx="12" cy="12" r="9" />
+        <circle cx="12" cy="12" r="5" />
+        <circle cx="12" cy="12" r="1" />
+      </>
+    ),
+    development: (
+      <>
+        <path d="M4 19 19 4" />
+        <path d="M9 4h10v10" />
+        <path d="M4 10v10h10" />
+      </>
+    ),
+    community: (
+      <>
+        <path d="M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+        <circle cx="10" cy="7" r="4" />
+        <path d="M20 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
+      </>
+    ),
+  };
+
+  return <svg {...common}>{paths[name] || paths.overview}</svg>;
+}
+
+const quickLinks = [
+  { id: "overview", label: "Overview", icon: "overview" },
+  { id: "profile-settings", label: "Profile settings", icon: "profile" },
+  { id: "universities", label: "Universities", icon: "university" },
+  { id: "careers", label: "Career explorer", icon: "careers" },
+  { id: "development", label: "My development", icon: "development" },
+  { id: "community", label: "Community", icon: "community" },
+];
 
 export default function DashboardPage() {
   const router = useRouter();
 
   const [profile, setProfile] = useState(defaultProfile);
+
+  const [profileDraft, setProfileDraft] = useState({
+    ...defaultProfile,
+    interestsText: "",
+  });
+
   const [tasks, setTasks] = useState(initialTasks);
   const [universities, setUniversities] = useState([]);
   const [careerInterests, setCareerInterests] = useState([]);
@@ -58,6 +134,8 @@ export default function DashboardPage() {
   const [authLoading, setAuthLoading] = useState(true);
   const [authError, setAuthError] = useState("");
   const [saveError, setSaveError] = useState("");
+  const [profileMessage, setProfileMessage] = useState("");
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   // LOAD THE LOGGED-IN USER AND THEIR DASHBOARD FROM MONGODB
@@ -102,12 +180,19 @@ export default function DashboardPage() {
 
         if (!isMounted) return;
 
-        setProfile({
+        const loadedProfile = {
           full_name: user.fullName || user.full_name || "Student",
-          university: user.university || "University not added",
-          degree: user.degree || "Degree not added",
-          year: user.year || "Year not added",
+          university: user.university || "",
+          degree: user.degree || "",
+          year: user.year || "",
           interests: Array.isArray(user.interests) ? user.interests : [],
+        };
+
+        setProfile(loadedProfile);
+
+        setProfileDraft({
+          ...loadedProfile,
+          interestsText: loadedProfile.interests.join(", "),
         });
 
         setTasks(
@@ -146,7 +231,7 @@ export default function DashboardPage() {
     };
   }, [router]);
 
-  // SAVE CHANGES TO THE SIGNED-IN USER'S MONGODB DOCUMENT
+  // SAVE DASHBOARD DATA
   async function saveDashboard(updates) {
     try {
       setSaveError("");
@@ -175,6 +260,85 @@ export default function DashboardPage() {
     } catch (error) {
       setSaveError(error.message);
       return false;
+    }
+  }
+
+  // UPDATE PROFILE FORM INPUTS
+  function handleProfileChange(event) {
+    const { name, value } = event.target;
+
+    setProfileDraft((previous) => ({
+      ...previous,
+      [name]: value,
+    }));
+
+    setProfileMessage("");
+  }
+
+  // SAVE PROFILE TO THE LOGGED-IN USER'S MONGODB DOCUMENT
+  async function handleProfileSave(event) {
+    event.preventDefault();
+
+    setIsSavingProfile(true);
+    setSaveError("");
+    setProfileMessage("");
+
+    const updatedProfile = {
+      fullName: profileDraft.full_name.trim(),
+      university: profileDraft.university.trim(),
+      degree: profileDraft.degree.trim(),
+      year: profileDraft.year.trim(),
+      interests: profileDraft.interestsText
+        .split(",")
+        .map((interest) => interest.trim())
+        .filter(Boolean),
+    };
+
+    try {
+      const response = await fetch(`${API_URL}/auth/profile`, {
+        method: "PATCH",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(updatedProfile),
+      });
+
+      if (response.status === 401) {
+        router.replace("/login");
+        return;
+      }
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Unable to update your profile.");
+      }
+
+      const user = data.user || {};
+
+      const savedProfile = {
+        full_name: user.fullName || updatedProfile.fullName,
+        university: user.university || "",
+        degree: user.degree || "",
+        year: user.year || "",
+        interests: Array.isArray(user.interests)
+          ? user.interests
+          : updatedProfile.interests,
+      };
+
+      setProfile(savedProfile);
+
+      setProfileDraft({
+        ...savedProfile,
+        interestsText: savedProfile.interests.join(", "),
+      });
+
+      setProfileMessage("Your profile has been saved successfully.");
+    } catch (error) {
+      setSaveError(error.message);
+    } finally {
+      setIsSavingProfile(false);
     }
   }
 
@@ -221,6 +385,8 @@ export default function DashboardPage() {
 
   // TOGGLE TASK AND SAVE IT TO MONGODB
   async function toggleTask(id) {
+    const previousTasks = tasks;
+
     const updated = tasks.map((task) =>
       task.id === id ? { ...task, done: !task.done } : task
     );
@@ -230,12 +396,14 @@ export default function DashboardPage() {
     const saved = await saveDashboard({ tasks: updated });
 
     if (!saved) {
-      setTasks(tasks);
+      setTasks(previousTasks);
     }
   }
 
   // REMOVE UNIVERSITY AND SAVE IT TO MONGODB
   async function removeUniversity(name) {
+    const previousUniversities = universities;
+
     const updated = universities.filter(
       (university) => university.name !== name
     );
@@ -245,7 +413,7 @@ export default function DashboardPage() {
     const saved = await saveDashboard({ universities: updated });
 
     if (!saved) {
-      setUniversities(universities);
+      setUniversities(previousUniversities);
     }
   }
 
@@ -292,7 +460,6 @@ export default function DashboardPage() {
         >
           <h2>Unable to load your dashboard</h2>
           <p>{authError}</p>
-
           <button onClick={() => window.location.reload()}>
             Try again
           </button>
@@ -301,55 +468,45 @@ export default function DashboardPage() {
     );
   }
 
+  const avatarInitials =
+    profile.full_name
+      .split(" ")
+      .map((part) => part[0])
+      .slice(0, 2)
+      .join("")
+      .toUpperCase() || "ST";
+
   return (
     <main className="dashboard-page">
+      {/* SIDEBAR */}
       <aside className="dashboard-sidebar">
         <Link href="/" className="dashboard-logo">
           onkur<span>.</span>
         </Link>
 
-        <div className="dashboard-sidebar-label">WORKSPACE</div>
+        <div className="dashboard-sidebar-label">QUICK ACCESS</div>
 
         <nav className="dashboard-nav">
-          <Link
-            href="#overview"
-            className={activeNav === "overview" ? "active" : ""}
-            onClick={(event) => navigateToSection(event, "overview")}
-          >
-            <span>▦</span> Overview
-          </Link>
-
-          <Link
-            href="#universities"
-            className={activeNav === "universities" ? "active" : ""}
-            onClick={(event) => navigateToSection(event, "universities")}
-          >
-            <span>⌂</span> Universities
-          </Link>
-
-          <Link
-            href="#careers"
-            className={activeNav === "careers" ? "active" : ""}
-            onClick={(event) => navigateToSection(event, "careers")}
-          >
-            <span>◎</span> Career explorer
-          </Link>
-
-          <Link
-            href="#development"
-            className={activeNav === "development" ? "active" : ""}
-            onClick={(event) => navigateToSection(event, "development")}
-          >
-            <span>↗</span> My development
-          </Link>
-
-          <Link
-            href="#community"
-            className={activeNav === "community" ? "active" : ""}
-            onClick={(event) => navigateToSection(event, "community")}
-          >
-            <span>♧</span> Community
-          </Link>
+          {quickLinks.map((item) => (
+            <Link
+              href={`#${item.id}`}
+              key={item.id}
+              className={activeNav === item.id ? "active" : ""}
+              onClick={(event) => navigateToSection(event, item.id)}
+            >
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: 22,
+                }}
+              >
+                <QuickIcon name={item.icon} />
+              </span>
+              {item.label}
+            </Link>
+          ))}
         </nav>
 
         <div className="dashboard-sidebar-bottom">
@@ -370,6 +527,7 @@ export default function DashboardPage() {
         </div>
       </aside>
 
+      {/* MAIN DASHBOARD */}
       <section className="dashboard-main">
         <header className="dashboard-topbar">
           <div className="dashboard-breadcrumb">
@@ -383,14 +541,7 @@ export default function DashboardPage() {
               <i /> Your journey is active
             </span>
 
-            <div className="dashboard-avatar">
-              {profile.full_name
-                .split(" ")
-                .map((part) => part[0])
-                .slice(0, 2)
-                .join("")
-                .toUpperCase()}
-            </div>
+            <div className="dashboard-avatar">{avatarInitials}</div>
 
             <button
               onClick={handleLogout}
@@ -429,7 +580,7 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {/* WELCOME AND PROFILE */}
+          {/* WELCOME */}
           <section
             id="overview"
             className="dashboard-welcome"
@@ -458,14 +609,23 @@ export default function DashboardPage() {
             </div>
           </section>
 
-          {/* STUDENT INFORMATION */}
+          {/* STUDENT PROFILE SUMMARY */}
           <section className="dashboard-panel" style={{ marginBottom: 18 }}>
             <div className="dashboard-panel-heading">
               <div>
                 <p className="dashboard-eyebrow">YOUR STUDENT PROFILE</p>
                 <h2>{profile.full_name}</h2>
               </div>
-              <span className="dashboard-sparkle">✦</span>
+
+              <button
+                type="button"
+                className="dashboard-text-button"
+                onClick={(event) =>
+                  navigateToSection(event, "profile-settings")
+                }
+              >
+                Edit profile ↗
+              </button>
             </div>
 
             <div className="dashboard-career-list">
@@ -475,12 +635,14 @@ export default function DashboardPage() {
                 </div>
 
                 <div className="dashboard-career-info">
-                  <strong>{profile.university}</strong>
-                  <small>{profile.degree}</small>
+                  <strong>
+                    {profile.university || "University not added"}
+                  </strong>
+                  <small>{profile.degree || "Degree not added"}</small>
                 </div>
 
                 <div className="dashboard-match">
-                  <strong>{profile.year}</strong>
+                  <strong>{profile.year || "Not added"}</strong>
                   <small>Academic year</small>
                 </div>
               </article>
@@ -516,6 +678,142 @@ export default function DashboardPage() {
                 )}
               </div>
             </div>
+          </section>
+
+          {/* PROFILE SETTINGS */}
+          <section
+            id="profile-settings"
+            className="dashboard-panel"
+            style={{ marginBottom: 18, scrollMarginTop: 24 }}
+          >
+            <div className="dashboard-panel-heading">
+              <div>
+                <p className="dashboard-eyebrow">ACCOUNT DETAILS</p>
+                <h2>Profile settings</h2>
+              </div>
+
+              <span className="dashboard-sparkle">
+                <QuickIcon name="profile" size={23} />
+              </span>
+            </div>
+
+            <p className="dashboard-panel-description">
+              Keep your student information up to date. Your changes will be
+              saved to your account.
+            </p>
+
+            <form onSubmit={handleProfileSave}>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                  gap: 16,
+                  marginTop: 20,
+                }}
+              >
+                <label className="dashboard-profile-field">
+                  <span>Full name</span>
+                  <input
+                    type="text"
+                    name="full_name"
+                    value={profileDraft.full_name}
+                    onChange={handleProfileChange}
+                    placeholder="Your full name"
+                    required
+                    minLength={2}
+                  />
+                </label>
+
+                <label className="dashboard-profile-field">
+                  <span>University</span>
+                  <input
+                    type="text"
+                    name="university"
+                    value={profileDraft.university}
+                    onChange={handleProfileChange}
+                    placeholder="Your university"
+                  />
+                </label>
+
+                <label className="dashboard-profile-field">
+                  <span>Degree / Department</span>
+                  <input
+                    type="text"
+                    name="degree"
+                    value={profileDraft.degree}
+                    onChange={handleProfileChange}
+                    placeholder="e.g. Computer Science & Engineering"
+                  />
+                </label>
+
+                <label className="dashboard-profile-field">
+                  <span>Academic year</span>
+                  <input
+                    type="text"
+                    name="year"
+                    value={profileDraft.year}
+                    onChange={handleProfileChange}
+                    placeholder="e.g. 2nd Year"
+                  />
+                </label>
+
+                <label
+                  className="dashboard-profile-field"
+                  style={{ gridColumn: "1 / -1" }}
+                >
+                  <span>Areas of interest</span>
+                  <input
+                    type="text"
+                    name="interestsText"
+                    value={profileDraft.interestsText}
+                    onChange={handleProfileChange}
+                    placeholder="e.g. Web Development, AI, UI/UX, Robotics"
+                  />
+                  <small>
+                    Separate each interest with a comma.
+                  </small>
+                </label>
+              </div>
+
+              <div
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 12,
+                  marginTop: 22,
+                }}
+              >
+                <div
+                  role="status"
+                  style={{
+                    color: profileMessage ? "#80c9a0" : "var(--muted)",
+                    fontSize: 12,
+                  }}
+                >
+                  {profileMessage}
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isSavingProfile}
+                  style={{
+                    background: "var(--yellow)",
+                    color: "#171717",
+                    border: "none",
+                    padding: "11px 20px",
+                    borderRadius: 8,
+                    fontWeight: 700,
+                    fontSize: 12,
+                    cursor: isSavingProfile ? "not-allowed" : "pointer",
+                    opacity: isSavingProfile ? 0.65 : 1,
+                  }}
+                >
+                  {isSavingProfile ? "Saving..." : "Save changes ↗"}
+                </button>
+              </div>
+            </form>
           </section>
 
           {/* OVERVIEW STATS */}

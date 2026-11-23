@@ -1,4 +1,3 @@
-
 const User = require("../models/User");
 const jwt = require("jsonwebtoken");
 
@@ -27,9 +26,10 @@ const sendToken = (user, statusCode, res) => {
 
   res.status(statusCode).json({
     success: true,
-    message: statusCode === 201
-      ? "Account created successfully!"
-      : "Login successful!",
+    message:
+      statusCode === 201
+        ? "Account created successfully!"
+        : "Login successful!",
     user: {
       id: user._id,
       fullName: user.fullName,
@@ -48,7 +48,6 @@ const signup = async (req, res) => {
   try {
     const { fullName, email, password } = req.body;
 
-    // Check required fields
     if (!fullName || !email || !password) {
       return res.status(400).json({
         success: false,
@@ -56,7 +55,6 @@ const signup = async (req, res) => {
       });
     }
 
-    // Validate name
     if (fullName.trim().length < 2) {
       return res.status(400).json({
         success: false,
@@ -64,7 +62,6 @@ const signup = async (req, res) => {
       });
     }
 
-    // Validate email
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
     if (!emailRegex.test(email.trim())) {
@@ -74,7 +71,6 @@ const signup = async (req, res) => {
       });
     }
 
-    // Validate password
     if (password.length < 8) {
       return res.status(400).json({
         success: false,
@@ -82,7 +78,6 @@ const signup = async (req, res) => {
       });
     }
 
-    // Check if account already exists
     const existingUser = await User.findOne({
       email: email.trim().toLowerCase(),
     });
@@ -94,7 +89,6 @@ const signup = async (req, res) => {
       });
     }
 
-    // Create user
     const user = await User.create({
       fullName: fullName.trim(),
       email: email.trim().toLowerCase(),
@@ -131,7 +125,6 @@ const signin = async (req, res) => {
       });
     }
 
-    // Find user and include password for comparison
     const user = await User.findOne({
       email: email.trim().toLowerCase(),
     }).select("+password");
@@ -143,7 +136,6 @@ const signin = async (req, res) => {
       });
     }
 
-    // Compare password
     const isMatch = await user.comparePassword(password);
 
     if (!isMatch) {
@@ -201,9 +193,87 @@ const getMe = async (req, res) => {
   }
 };
 
+// UPDATE STUDENT PROFILE
+const updateProfile = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found.",
+      });
+    }
+
+    const { fullName, university, degree, year, interests } = req.body;
+
+    if (fullName !== undefined) {
+      if (typeof fullName !== "string" || fullName.trim().length < 2) {
+        return res.status(400).json({
+          success: false,
+          message: "Please enter a valid full name.",
+        });
+      }
+
+      user.fullName = fullName.trim();
+    }
+
+    if (university !== undefined) {
+      user.university = String(university).trim();
+    }
+
+    if (degree !== undefined) {
+      user.degree = String(degree).trim();
+    }
+
+    if (year !== undefined) {
+      user.year = String(year).trim();
+    }
+
+    if (interests !== undefined) {
+      if (!Array.isArray(interests)) {
+        return res.status(400).json({
+          success: false,
+          message: "Interests must be a list.",
+        });
+      }
+
+      user.interests = interests
+        .filter((interest) => typeof interest === "string")
+        .map((interest) => interest.trim())
+        .filter(Boolean);
+    }
+
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Your profile has been updated successfully.",
+      user: {
+        id: user._id,
+        fullName: user.fullName,
+        email: user.email,
+        university: user.university,
+        degree: user.degree,
+        year: user.year,
+        interests: user.interests,
+        skills: user.skills,
+      },
+    });
+  } catch (error) {
+    console.error("Profile update error:", error.message);
+
+    res.status(500).json({
+      success: false,
+      message: "Unable to update your profile.",
+    });
+  }
+};
+
 module.exports = {
   signup,
   signin,
   logout,
   getMe,
+  updateProfile,
 };

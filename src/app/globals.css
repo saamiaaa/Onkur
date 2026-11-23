@@ -7057,4 +7057,64 @@ a:focus-visible {
     animation: none;
   }
 }
+/* dashboard profile settings */
 
+.dashboard-profile-field {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  color: var(--foreground);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.dashboard-profile-field input {
+  width: 100%;
+  min-width: 0;
+  padding: 13px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  outline: none;
+  background: rgba(255, 255, 255, 0.025);
+  color: var(--foreground);
+  font-family: inherit;
+  font-size: 13px;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.dashboard-profile-field input:focus {
+  border-color: var(--yellow);
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.dashboard-profile-field input::placeholder {
+  color: var(--muted);
+  opacity: 0.7;
+}
+
+.dashboard-profile-field small {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+.dashboard-profile-field input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.dashboard-nav a {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.dashboard-nav a svg {
+  flex-shrink: 0;
+  opacity: 0.8;
+}
+
+.dashboard-nav a.active svg {
+  opacity: 1;
+}
