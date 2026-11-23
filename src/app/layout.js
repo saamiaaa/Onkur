@@ -1,5 +1,6 @@
 
 import "./globals.css";
+import AIAssistant from "./AIAssistant";
 
 export const metadata = {
   title: "Onkur",
@@ -10,7 +11,10 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        {children}
+        <AIAssistant />
+      </body>
     </html>
   );
 }
