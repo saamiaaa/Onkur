@@ -2,11 +2,57 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import "./login.css";
 
 export default function LoginPage() {
+  const router = useRouter();
+
   const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setError("");
+
+    const formData = new FormData(e.currentTarget);
+
+    const email = formData.get("email");
+    const password = formData.get("password");
+
+    try {
+      setLoading(true);
+
+      const response = await fetch(
+        "http://localhost:5000/api/auth/signin",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify({
+            email,
+            password,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Sign in failed.");
+      }
+
+      router.push("/dashboard");
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <main className="login-page">
@@ -89,16 +135,11 @@ export default function LoginPage() {
               <p>Sign in to continue your Onkur journey.</p>
             </div>
 
-            <form
-              className="login-form"
-              onSubmit={(e) => {
-                e.preventDefault();
-                alert("Sign in design preview — authentication will be connected later.");
-              }}
-            >
+            <form className="login-form" onSubmit={handleLogin}>
               <label htmlFor="login-email">Email address</label>
               <input
                 id="login-email"
+                name="email"
                 type="email"
                 placeholder="you@example.com"
                 autoComplete="email"
@@ -115,6 +156,7 @@ export default function LoginPage() {
               <div className="login-password-field">
                 <input
                   id="login-password"
+                  name="password"
                   type={showPassword ? "text" : "password"}
                   placeholder="Enter your password"
                   autoComplete="current-password"
@@ -134,8 +176,19 @@ export default function LoginPage() {
                 <label htmlFor="login-remember">Remember me</label>
               </div>
 
-              <button type="submit" className="login-submit">
-                Sign in <span>→</span>
+              {error && (
+                <p style={{ color: "#ff7777", marginBottom: "12px" }}>
+                  {error}
+                </p>
+              )}
+
+              <button
+                type="submit"
+                className="login-submit"
+                disabled={loading}
+              >
+                {loading ? "Signing in..." : "Sign in"}
+                {!loading && <span>→</span>}
               </button>
             </form>
 
@@ -151,7 +204,8 @@ export default function LoginPage() {
             </button>
 
             <p className="login-mobile-signup">
-              New to Onkur? <Link href="/signup">Create an account</Link>
+              New to Onkur?{" "}
+              <Link href="/signup">Create an account</Link>
             </p>
 
             <div className="login-secure-note">

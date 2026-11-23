@@ -2,12 +2,65 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 
-
 export default function SignupPage() {
+  const router = useRouter();
+
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleSignup = async (e) => {
+    e.preventDefault();
+    setError("");
+
+    const formData = new FormData(e.currentTarget);
+
+    const fullName = formData.get("fullName");
+    const email = formData.get("email");
+    const password = formData.get("password");
+    const confirmPassword = formData.get("confirmPassword");
+
+    if (password !== confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const response = await fetch(
+        "http://localhost:5000/api/auth/signup",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify({
+            fullName,
+            email,
+            password,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Could not create your account.");
+      }
+
+      router.push("/dashboard");
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <main className="signup-page">
@@ -87,16 +140,11 @@ export default function SignupPage() {
               <p>Join Onkur and take the next step in your journey.</p>
             </div>
 
-            <form
-              className="signup-form"
-              onSubmit={(e) => {
-                e.preventDefault();
-                alert("Sign up design preview — backend coming later.");
-              }}
-            >
+            <form className="signup-form" onSubmit={handleSignup}>
               <label htmlFor="signup-name">Full name</label>
               <input
                 id="signup-name"
+                name="fullName"
                 type="text"
                 placeholder="Enter your full name"
                 autoComplete="name"
@@ -106,6 +154,7 @@ export default function SignupPage() {
               <label htmlFor="signup-email">Email address</label>
               <input
                 id="signup-email"
+                name="email"
                 type="email"
                 placeholder="you@example.com"
                 autoComplete="email"
@@ -116,12 +165,14 @@ export default function SignupPage() {
               <div className="signup-password-field">
                 <input
                   id="signup-password"
+                  name="password"
                   type={showPassword ? "text" : "password"}
                   placeholder="Create a password"
                   autoComplete="new-password"
                   minLength={8}
                   required
                 />
+
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
@@ -134,12 +185,14 @@ export default function SignupPage() {
               <div className="signup-password-field">
                 <input
                   id="signup-confirm"
+                  name="confirmPassword"
                   type={showConfirm ? "text" : "password"}
                   placeholder="Enter your password again"
                   autoComplete="new-password"
                   minLength={8}
                   required
                 />
+
                 <button
                   type="button"
                   onClick={() => setShowConfirm(!showConfirm)}
@@ -149,15 +202,30 @@ export default function SignupPage() {
               </div>
 
               <div className="signup-terms">
-                <input type="checkbox" id="signup-terms" required />
+                <input
+                  type="checkbox"
+                  id="signup-terms"
+                  required
+                />
                 <label htmlFor="signup-terms">
                   I agree to the <a href="#">Terms of Service</a> and{" "}
                   <a href="#">Privacy Policy</a>.
                 </label>
               </div>
 
-              <button type="submit" className="signup-submit">
-                Create account <span>→</span>
+              {error && (
+                <p style={{ color: "#ff7777", marginBottom: "12px" }}>
+                  {error}
+                </p>
+              )}
+
+              <button
+                type="submit"
+                className="signup-submit"
+                disabled={loading}
+              >
+                {loading ? "Creating account..." : "Create account"}
+                {!loading && <span>→</span>}
               </button>
             </form>
 
