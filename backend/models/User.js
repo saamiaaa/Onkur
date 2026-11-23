@@ -89,6 +89,11 @@ const userSchema = new mongoose.Schema(
       enum: ["student", "admin"],
       default: "student",
     },
+    educationLevel: {
+      type: String,
+      enum: ["high_school", "university", ""],
+      default: "",
+    },
     university: { type: String, default: "" },
     degree: { type: String, default: "" },
     year: { type: String, default: "" },

@@ -2,6 +2,7 @@
 "use client";
 
 import { getCareersForUniversity } from "../data/careerLinks";
+import { getUniversityMatches } from "../data/universityMatching";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import universities from "../data/universities";
@@ -9,7 +10,6 @@ import universities from "../data/universities";
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
-// Safely display career entries whether they are strings or objects.
 function getCareerName(career) {
   if (typeof career === "string") return career;
 
@@ -41,24 +41,36 @@ export default function UniversitiesPage() {
   const [saveError, setSaveError] = useState("");
   const [showAuthPrompt, setShowAuthPrompt] = useState(false);
 
-  // CHECK LOGIN STATUS AND LOAD SAVED UNIVERSITIES
+  const [studentProfile, setStudentProfile] = useState(null);
+
+  // CHECK LOGIN STATUS, LOAD PROFILE AND SAVED UNIVERSITIES
   useEffect(() => {
     let isMounted = true;
 
-    async function loadSavedUniversities() {
+    async function loadStudentData() {
       try {
         const authResponse = await fetch(`${API_URL}/auth/me`, {
           credentials: "include",
         });
 
         if (authResponse.status === 401) {
-          if (isMounted) setIsAuthenticated(false);
+          if (isMounted) {
+            setIsAuthenticated(false);
+            setStudentProfile(null);
+          }
           return;
         }
 
         if (!authResponse.ok) {
           throw new Error("Unable to verify your account.");
         }
+
+        const authData = await authResponse.json();
+
+        const user =
+          authData.user ||
+          authData.data?.user ||
+          authData;
 
         if (isMounted) setIsAuthenticated(true);
 
@@ -67,17 +79,22 @@ export default function UniversitiesPage() {
         });
 
         if (dashboardResponse.status === 401) {
-          if (isMounted) setIsAuthenticated(false);
+          if (isMounted) {
+            setIsAuthenticated(false);
+            setStudentProfile(null);
+          }
           return;
         }
 
         if (!dashboardResponse.ok) {
-          throw new Error("Unable to load your saved universities.");
+          throw new Error("Unable to load your student profile.");
         }
 
         const dashboardData = await dashboardResponse.json();
+        const dashboard = dashboardData.dashboard || {};
+
         const savedUniversities =
-          dashboardData.dashboard?.universities || [];
+          dashboard.universities || [];
 
         const savedIds = savedUniversities
           .map((university) => {
@@ -91,7 +108,16 @@ export default function UniversitiesPage() {
           })
           .filter(Boolean);
 
-        if (isMounted) setSaved(savedIds);
+        const profile = {
+          ...user,
+          careerInterests: dashboard.careerInterests || [],
+          development: dashboard.development || {},
+        };
+
+        if (isMounted) {
+          setSaved(savedIds);
+          setStudentProfile(profile);
+        }
       } catch (error) {
         console.error("University loading error:", error);
 
@@ -101,7 +127,7 @@ export default function UniversitiesPage() {
       }
     }
 
-    loadSavedUniversities();
+    loadStudentData();
 
     return () => {
       isMounted = false;
@@ -119,6 +145,13 @@ export default function UniversitiesPage() {
 
     return true;
   }
+
+  // PERSONALIZED UNIVERSITY MATCHES
+  const recommendedUniversities = useMemo(() => {
+    if (!isAuthenticated || !studentProfile) return [];
+
+    return getUniversityMatches(universities, studentProfile).slice(0, 3);
+  }, [isAuthenticated, studentProfile]);
 
   // FILTER OPTIONS
   const countries = useMemo(
@@ -360,6 +393,178 @@ export default function UniversitiesPage() {
       {/* EXPLORER */}
       <section className="explorer-section">
         <div className="container">
+
+          {/* PERSONALIZED RECOMMENDATIONS */}
+          {isAuthenticated && !isLoadingSaved && (
+            <section style={{ marginBottom: "55px" }}>
+              <div className="explorer-heading">
+                <div>
+                  <p className="eyebrow">Smart University Matching</p>
+
+                  <h2>
+                    Recommended <span>for you.</span>
+                  </h2>
+
+                  <p>
+                    Universities ranked using your academic background,
+                    interests, skills, and career goals.
+                  </p>
+                </div>
+              </div>
+
+              {recommendedUniversities.length > 0 ? (
+                <div className="university-grid">
+                  {recommendedUniversities.map((uni) => {
+                    const isSaved = saved.includes(uni.id);
+                    const isCompared = compare.includes(uni.id);
+
+                    return (
+                      <article className="university-card" key={uni.id}>
+                        <div className="university-card-top">
+                          <div
+                            className="university-monogram"
+                            style={
+                              uni.color
+                                ? { background: uni.color }
+                                : undefined
+                            }
+                          >
+                            {uni.shortName || uni.short || uni.name?.charAt(0)}
+                          </div>
+
+                          <span
+                            style={{
+                              fontSize: "13px",
+                              fontWeight: "700",
+                              padding: "8px 12px",
+                              borderRadius: "20px",
+                              background: "rgba(119, 112, 255, 0.14)",
+                              color: "var(--violet, #7770ff)",
+                            }}
+                          >
+                            {uni.matchScore}% match
+                          </span>
+                        </div>
+
+                        <p className="university-location">
+                          {uni.location || uni.city}
+                          {uni.country ? `, ${uni.country}` : ""}
+                        </p>
+
+                        <h3>{uni.name}</h3>
+
+                        <div className="university-tags">
+                          {uni.type && <span>{uni.type}</span>}
+
+                          {(uni.levels || []).slice(0, 2).map((item, index) => (
+                            <span key={`${uni.id}-match-level-${index}`}>
+                              {typeof item === "string"
+                                ? item
+                                : item?.name || item?.title}
+                            </span>
+                          ))}
+                        </div>
+
+                        <div style={{ margin: "16px 0" }}>
+                          <strong style={{ fontSize: "13px" }}>
+                            Why this matches your profile
+                          </strong>
+
+                          <ul
+                            style={{
+                              paddingLeft: "18px",
+                              marginTop: "9px",
+                              fontSize: "13px",
+                              lineHeight: "1.7",
+                              color: "var(--muted, #a0a0a0)",
+                            }}
+                          >
+                            {uni.matchReasons.map((reason, index) => (
+                              <li key={`${uni.id}-reason-${index}`}>
+                                {reason}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+
+                        {uni.matchedSubjects.length > 0 && (
+                          <div className="university-subjects">
+                            {uni.matchedSubjects.map((item, index) => (
+                              <span key={`${uni.id}-matched-${index}`}>
+                                #{item}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+
+                        <div className="university-card-actions">
+                          <button
+                            className="details-button"
+                            onClick={() => openUniversity(uni)}
+                          >
+                            Explore university
+                          </button>
+
+                          <button
+                            className={`save-button ${
+                              isSaved ? "is-saved" : ""
+                            }`}
+                            onClick={() => toggleSaved(uni)}
+                            disabled={savingId === uni.id}
+                          >
+                            {savingId === uni.id
+                              ? "…"
+                              : isSaved
+                              ? "♥ Saved"
+                              : "♡ Save"}
+                          </button>
+
+                          <button
+                            className={`compare-button ${
+                              isCompared ? "compare-active" : ""
+                            }`}
+                            onClick={() => toggleCompare(uni.id)}
+                            disabled={!isCompared && compare.length >= 3}
+                          >
+                            {isCompared ? "Added" : "Compare"}
+                          </button>
+                        </div>
+                      </article>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="directory-note">
+                  <div className="directory-note-icon">✦</div>
+
+                  <div>
+                    <h3>Let's complete your student profile.</h3>
+                    <p>
+                      Add your degree, interests, and skills to receive
+                      personalized university recommendations.
+                    </p>
+
+                    <Link href="/dashboard" className="reset-button">
+                      Update my profile →
+                    </Link>
+                  </div>
+                </div>
+              )}
+
+              <p
+                style={{
+                  fontSize: "12px",
+                  color: "var(--muted, #999)",
+                  marginTop: "18px",
+                }}
+              >
+                Match scores represent profile relevance, not admission
+                eligibility or acceptance probability. Always verify
+                admission information on official university websites.
+              </p>
+            </section>
+          )}
+
           <div className="explorer-heading">
             <div>
               <p className="eyebrow">Your academic journey</p>
@@ -570,7 +775,9 @@ export default function UniversitiesPage() {
 
                       {(uni.levels || []).slice(0, 2).map((item, index) => (
                         <span key={`${uni.id}-level-${index}`}>
-                          {typeof item === "string" ? item : item?.name || item?.title}
+                          {typeof item === "string"
+                            ? item
+                            : item?.name || item?.title}
                         </span>
                       ))}
                     </div>
@@ -578,7 +785,9 @@ export default function UniversitiesPage() {
                     <div className="university-subjects">
                       {(uni.subjects || []).slice(0, 3).map((item, index) => (
                         <span key={`${uni.id}-subject-${index}`}>
-                          #{typeof item === "string" ? item : item?.name || item?.title}
+                          #{typeof item === "string"
+                            ? item
+                            : item?.name || item?.title}
                         </span>
                       ))}
                     </div>
@@ -720,7 +929,9 @@ export default function UniversitiesPage() {
                 {(selected.levels || []).length > 0 ? (
                   selected.levels.map((item, index) => (
                     <span key={`${selected.id}-modal-level-${index}`}>
-                      {typeof item === "string" ? item : item?.name || item?.title}
+                      {typeof item === "string"
+                        ? item
+                        : item?.name || item?.title}
                     </span>
                   ))
                 ) : (
@@ -736,7 +947,9 @@ export default function UniversitiesPage() {
                 {(selected.subjects || []).length > 0 ? (
                   selected.subjects.map((item, index) => (
                     <span key={`${selected.id}-modal-subject-${index}`}>
-                      {typeof item === "string" ? item : item?.name || item?.title}
+                      {typeof item === "string"
+                        ? item
+                        : item?.name || item?.title}
                     </span>
                   ))
                 ) : (

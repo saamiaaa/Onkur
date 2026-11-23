@@ -5,6 +5,9 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+
 export default function SignupPage() {
   const router = useRouter();
 
@@ -23,30 +26,34 @@ export default function SignupPage() {
     const email = formData.get("email");
     const password = formData.get("password");
     const confirmPassword = formData.get("confirmPassword");
+    const educationLevel = formData.get("educationLevel");
 
     if (password !== confirmPassword) {
       setError("Passwords do not match.");
       return;
     }
 
+    if (!educationLevel) {
+      setError("Please select your current education level.");
+      return;
+    }
+
     try {
       setLoading(true);
 
-      const response = await fetch(
-        "http://localhost:5000/api/auth/signup",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-          body: JSON.stringify({
-            fullName,
-            email,
-            password,
-          }),
-        }
-      );
+      const response = await fetch(`${API_URL}/auth/signup`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          fullName,
+          email,
+          password,
+          educationLevel,
+        }),
+      });
 
       const data = await response.json();
 
@@ -160,6 +167,37 @@ export default function SignupPage() {
                 autoComplete="email"
                 required
               />
+
+              <label htmlFor="signup-education">
+                Current education level
+              </label>
+              <select
+                id="signup-education"
+                name="educationLevel"
+                defaultValue=""
+                required
+                style={{
+                  width: "100%",
+                  padding: "13px 14px",
+                  marginBottom: "18px",
+                  borderRadius: "8px",
+                  border: "1px solid rgba(255,255,255,0.14)",
+                  background: "#191a22",
+                  color: "#f1f0eb",
+                  fontSize: "14px",
+                  outline: "none",
+                }}
+              >
+                <option value="" disabled>
+                  Select your education level
+                </option>
+                <option value="high_school">
+                  High School / HSC Student
+                </option>
+                <option value="university">
+                  University Student
+                </option>
+              </select>
 
               <label htmlFor="signup-password">Password</label>
               <div className="signup-password-field">

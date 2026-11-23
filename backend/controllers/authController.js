@@ -1,3 +1,4 @@
+
 const User = require("../models/User");
 const jwt = require("jsonwebtoken");
 
@@ -34,6 +35,7 @@ const sendToken = (user, statusCode, res) => {
       id: user._id,
       fullName: user.fullName,
       email: user.email,
+      educationLevel: user.educationLevel,
       university: user.university,
       degree: user.degree,
       year: user.year,
@@ -46,12 +48,19 @@ const sendToken = (user, statusCode, res) => {
 // SIGN UP
 const signup = async (req, res) => {
   try {
-    const { fullName, email, password } = req.body;
+    const { fullName, email, password, educationLevel } = req.body;
 
-    if (!fullName || !email || !password) {
+    if (!fullName || !email || !password || !educationLevel) {
       return res.status(400).json({
         success: false,
         message: "Please fill in all required fields.",
+      });
+    }
+
+    if (!["high_school", "university"].includes(educationLevel)) {
+      return res.status(400).json({
+        success: false,
+        message: "Please select a valid education level.",
       });
     }
 
@@ -93,6 +102,7 @@ const signup = async (req, res) => {
       fullName: fullName.trim(),
       email: email.trim().toLowerCase(),
       password,
+      educationLevel,
     });
 
     sendToken(user, 201, res);
@@ -205,7 +215,14 @@ const updateProfile = async (req, res) => {
       });
     }
 
-    const { fullName, university, degree, year, interests } = req.body;
+    const {
+      fullName,
+      educationLevel,
+      university,
+      degree,
+      year,
+      interests,
+    } = req.body;
 
     if (fullName !== undefined) {
       if (typeof fullName !== "string" || fullName.trim().length < 2) {
@@ -216,6 +233,17 @@ const updateProfile = async (req, res) => {
       }
 
       user.fullName = fullName.trim();
+    }
+
+    if (educationLevel !== undefined) {
+      if (!["high_school", "university"].includes(educationLevel)) {
+        return res.status(400).json({
+          success: false,
+          message: "Please select a valid education level.",
+        });
+      }
+
+      user.educationLevel = educationLevel;
     }
 
     if (university !== undefined) {
@@ -253,6 +281,7 @@ const updateProfile = async (req, res) => {
         id: user._id,
         fullName: user.fullName,
         email: user.email,
+        educationLevel: user.educationLevel,
         university: user.university,
         degree: user.degree,
         year: user.year,
