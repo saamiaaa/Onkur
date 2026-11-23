@@ -40,14 +40,7 @@ const initialTasks = [
   },
 ];
 
-function readStorage(key, fallback) {
-  try {
-    const value = localStorage.getItem(key);
-    return value ? JSON.parse(value) : fallback;
-  } catch {
-    return fallback;
-  }
-}
+const API_URL = "http://localhost:5000/api";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -58,41 +51,65 @@ export default function DashboardPage() {
   const [careerInterests, setCareerInterests] = useState([]);
   const [development, setDevelopment] = useState(null);
   const [community, setCommunity] = useState(null);
+
   const [showAllTasks, setShowAllTasks] = useState(false);
   const [activeNav, setActiveNav] = useState("overview");
 
   const [authLoading, setAuthLoading] = useState(true);
   const [authError, setAuthError] = useState("");
+  const [saveError, setSaveError] = useState("");
 
-  // VERIFY LOGIN AND LOAD USER DATA
+  // LOAD THE LOGGED-IN USER AND THEIR DASHBOARD FROM MONGODB
   useEffect(() => {
     let isMounted = true;
 
-    const verifyUser = async () => {
+    async function loadDashboard() {
       try {
-        const response = await fetch(
-          "http://localhost:5000/api/auth/me",
+        // First verify the user's login session.
+        const authResponse = await fetch(
+          `${API_URL}/auth/me`,
           {
             method: "GET",
             credentials: "include",
           }
         );
 
-        if (response.status === 401) {
+        if (authResponse.status === 401) {
           router.replace("/login");
           return;
         }
 
-        if (!response.ok) {
+        if (!authResponse.ok) {
           throw new Error("Unable to verify your account.");
         }
 
-        const data = await response.json();
-        const user = data.user || data;
+        const authData = await authResponse.json();
+        const user = authData.user || authData;
+
+        // Then retrieve this specific user's dashboard.
+        const dashboardResponse = await fetch(
+          `${API_URL}/dashboard`,
+          {
+            method: "GET",
+            credentials: "include",
+          }
+        );
+
+        if (dashboardResponse.status === 401) {
+          router.replace("/login");
+          return;
+        }
+
+        if (!dashboardResponse.ok) {
+          throw new Error("Unable to load your dashboard data.");
+        }
+
+        const dashboardData = await dashboardResponse.json();
+        const dashboard = dashboardData.dashboard || {};
 
         if (!isMounted) return;
 
-        // LOAD AUTHENTICATED USER PROFILE
+        // AUTHENTICATED USER PROFILE
         setProfile({
           full_name:
             user.fullName ||
@@ -116,26 +133,27 @@ export default function DashboardPage() {
             : [],
         });
 
-        // LOAD EXISTING DASHBOARD DATA
+        // ACCOUNT-SPECIFIC DASHBOARD DATA
         setTasks(
-          readStorage("onkur-dashboard-tasks", initialTasks)
+          Array.isArray(dashboard.tasks)
+            ? dashboard.tasks
+            : initialTasks
         );
 
         setUniversities(
-          readStorage("onkur-dashboard-universities", [])
+          Array.isArray(dashboard.universities)
+            ? dashboard.universities
+            : []
         );
 
         setCareerInterests(
-          readStorage("onkur-career-interests", [])
+          Array.isArray(dashboard.careerInterests)
+            ? dashboard.careerInterests
+            : []
         );
 
-        setDevelopment(
-          readStorage("onkur-development-progress", null)
-        );
-
-        setCommunity(
-          readStorage("onkur-community-activity", null)
-        );
+        setDevelopment(dashboard.development || null);
+        setCommunity(dashboard.community || null);
       } catch (error) {
         if (isMounted) {
           setAuthError(error.message);
@@ -145,14 +163,51 @@ export default function DashboardPage() {
           setAuthLoading(false);
         }
       }
-    };
+    }
 
-    verifyUser();
+    loadDashboard();
 
     return () => {
       isMounted = false;
     };
   }, [router]);
+
+  // SAVE CHANGES TO THE SIGNED-IN USER'S MONGODB DOCUMENT
+  async function saveDashboard(updates) {
+    try {
+      setSaveError("");
+
+      const response = await fetch(
+        `${API_URL}/dashboard`,
+        {
+          method: "PATCH",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(updates),
+        }
+      );
+
+      if (response.status === 401) {
+        router.replace("/login");
+        return false;
+      }
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.message || "Could not save your changes."
+        );
+      }
+
+      return true;
+    } catch (error) {
+      setSaveError(error.message);
+      return false;
+    }
+  }
 
   // NAVIGATE TO DASHBOARD SECTIONS
   function navigateToSection(event, sectionId) {
@@ -172,8 +227,8 @@ export default function DashboardPage() {
     ? Math.round((completedTasks / tasks.length) * 100)
     : 0;
 
-  // TOGGLE TASK
-  function toggleTask(id) {
+  // TOGGLE TASK AND SAVE IT TO MONGODB
+  async function toggleTask(id) {
     const updated = tasks.map((task) =>
       task.id === id
         ? { ...task, done: !task.done }
@@ -182,31 +237,29 @@ export default function DashboardPage() {
 
     setTasks(updated);
 
-    try {
-      localStorage.setItem(
-        "onkur-dashboard-tasks",
-        JSON.stringify(updated)
-      );
-    } catch {
-      console.error("Could not save dashboard tasks.");
+    const saved = await saveDashboard({
+      tasks: updated,
+    });
+
+    if (!saved) {
+      setTasks(tasks);
     }
   }
 
-  // REMOVE UNIVERSITY
-  function removeUniversity(name) {
+  // REMOVE UNIVERSITY AND SAVE IT TO MONGODB
+  async function removeUniversity(name) {
     const updated = universities.filter(
       (university) => university.name !== name
     );
 
     setUniversities(updated);
 
-    try {
-      localStorage.setItem(
-        "onkur-dashboard-universities",
-        JSON.stringify(updated)
-      );
-    } catch {
-      console.error("Could not update university shortlist.");
+    const saved = await saveDashboard({
+      universities: updated,
+    });
+
+    if (!saved) {
+      setUniversities(universities);
     }
   }
 
@@ -374,6 +427,24 @@ export default function DashboardPage() {
         </header>
 
         <div className="dashboard-content">
+
+          {/* SAVE ERROR MESSAGE */}
+
+          {saveError && (
+            <div
+              role="alert"
+              style={{
+                padding: "12px 16px",
+                marginBottom: 16,
+                border: "1px solid #d97757",
+                borderRadius: 8,
+                color: "var(--foreground)",
+                fontSize: 13,
+              }}
+            >
+              {saveError}
+            </div>
+          )}
 
           {/* WELCOME AND PROFILE */}
 

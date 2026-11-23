@@ -7,12 +7,12 @@ const helmet = require("helmet");
 
 const connectDB = require("./config/db");
 const authRoutes = require("./routes/authRoutes");
+const dashboardRoutes = require("./routes/dashboardRoutes");
 
 dotenv.config();
 
 const app = express();
 
-// Middleware
 app.use(helmet());
 
 app.use(
@@ -26,10 +26,9 @@ app.use(express.json({ limit: "10kb" }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-// Authentication routes
 app.use("/api/auth", authRoutes);
+app.use("/api/dashboard", dashboardRoutes);
 
-// Test route
 app.get("/api/health", (req, res) => {
   res.status(200).json({
     success: true,
@@ -37,7 +36,6 @@ app.get("/api/health", (req, res) => {
   });
 });
 
-// Handle unknown routes
 app.use((req, res) => {
   res.status(404).json({
     success: false,
@@ -45,7 +43,6 @@ app.use((req, res) => {
   });
 });
 
-// Start server
 const startServer = async () => {
   try {
     await connectDB();
