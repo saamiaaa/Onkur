@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -42,7 +43,6 @@ const initialTasks = [
   },
 ];
 
-// SMALL INLINE SVG ICONS
 function QuickIcon({ name, size = 19 }) {
   const common = {
     width: size,
@@ -98,6 +98,21 @@ function QuickIcon({ name, size = 19 }) {
         <path d="M20 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
       </>
     ),
+    home: (
+      <>
+        <path d="m3 10 9-7 9 7" />
+        <path d="M5 9v12h14V9" />
+        <path d="M9 21v-7h6v7" />
+      </>
+    ),
+    analyzer: (
+      <>
+        <path d="M9 3h6" />
+        <path d="M10 3v5l-5 9a3 3 0 0 0 2.6 4.5h8.8A3 3 0 0 0 19 17l-5-9V3" />
+        <path d="M8 15h8" />
+        <path d="m10 12 1.5 1.5L14 11" />
+      </>
+    ),
   };
 
   return <svg {...common}>{paths[name] || paths.overview}</svg>;
@@ -110,6 +125,45 @@ const quickLinks = [
   { id: "careers", label: "Career explorer", icon: "careers" },
   { id: "development", label: "My development", icon: "development" },
   { id: "community", label: "Community", icon: "community" },
+];
+
+const destinationLinks = [
+  {
+    label: "Home",
+    description: "Visit the student community",
+    href: "/connect",
+    icon: "home",
+  },
+  {
+    label: "Universities",
+    description: "Discover and shortlist universities",
+    href: "/universities",
+    icon: "university",
+  },
+  {
+    label: "Careers",
+    description: "Explore possible career paths",
+    href: "/careers",
+    icon: "careers",
+  },
+  {
+    label: "My Development",
+    description: "Continue your learning journey",
+    href: "/develop",
+    icon: "development",
+  },
+  {
+    label: "Community",
+    description: "Connect with other students",
+    href: "/connect",
+    icon: "community",
+  },
+  {
+    label: "AI Profile Analyzer",
+    description: "Get personalized student insights",
+    href: "/analyzer",
+    icon: "analyzer",
+  },
 ];
 
 export default function DashboardPage() {
@@ -138,7 +192,6 @@ export default function DashboardPage() {
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
-  // LOAD THE LOGGED-IN USER AND THEIR DASHBOARD FROM MONGODB
   useEffect(() => {
     let isMounted = true;
 
@@ -231,7 +284,6 @@ export default function DashboardPage() {
     };
   }, [router]);
 
-  // SAVE DASHBOARD DATA
   async function saveDashboard(updates) {
     try {
       setSaveError("");
@@ -263,7 +315,6 @@ export default function DashboardPage() {
     }
   }
 
-  // UPDATE PROFILE FORM INPUTS
   function handleProfileChange(event) {
     const { name, value } = event.target;
 
@@ -275,7 +326,6 @@ export default function DashboardPage() {
     setProfileMessage("");
   }
 
-  // SAVE PROFILE TO THE LOGGED-IN USER'S MONGODB DOCUMENT
   async function handleProfileSave(event) {
     event.preventDefault();
 
@@ -342,7 +392,6 @@ export default function DashboardPage() {
     }
   }
 
-  // LOG OUT THE CURRENT USER
   async function handleLogout() {
     try {
       setIsLoggingOut(true);
@@ -365,7 +414,6 @@ export default function DashboardPage() {
     }
   }
 
-  // NAVIGATE TO DASHBOARD SECTIONS
   function navigateToSection(event, sectionId) {
     event.preventDefault();
 
@@ -383,7 +431,6 @@ export default function DashboardPage() {
     ? Math.round((completedTasks / tasks.length) * 100)
     : 0;
 
-  // TOGGLE TASK AND SAVE IT TO MONGODB
   async function toggleTask(id) {
     const previousTasks = tasks;
 
@@ -400,7 +447,6 @@ export default function DashboardPage() {
     }
   }
 
-  // REMOVE UNIVERSITY AND SAVE IT TO MONGODB
   async function removeUniversity(name) {
     const previousUniversities = universities;
 
@@ -422,7 +468,6 @@ export default function DashboardPage() {
   const developmentSkills = development?.completedSkills || [];
   const developmentProjects = development?.completedProjects || [];
 
-  // AUTHENTICATION LOADING SCREEN
   if (authLoading) {
     return (
       <main className="dashboard-page">
@@ -441,7 +486,6 @@ export default function DashboardPage() {
     );
   }
 
-  // AUTHENTICATION ERROR
   if (authError) {
     return (
       <main className="dashboard-page">
@@ -609,6 +653,144 @@ export default function DashboardPage() {
             </div>
           </section>
 
+          {/* QUICK DESTINATION LINKS */}
+          <section
+            aria-label="Quick destinations"
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(145px, 1fr))",
+              gap: 12,
+              marginBottom: 22,
+            }}
+          >
+            {destinationLinks.map((item) => (
+              <Link
+                href={item.href}
+                key={item.label}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                  padding: "15px 13px",
+                  minWidth: 0,
+                  border: "1px solid var(--border)",
+                  borderRadius: 12,
+                  background: "rgba(255,255,255,0.02)",
+                  color: "var(--foreground)",
+                  textDecoration: "none",
+                  transition: "border-color 0.2s, transform 0.2s",
+                }}
+                onMouseEnter={(event) => {
+                  event.currentTarget.style.borderColor = "var(--yellow)";
+                  event.currentTarget.style.transform = "translateY(-2px)";
+                }}
+                onMouseLeave={(event) => {
+                  event.currentTarget.style.borderColor = "var(--border)";
+                  event.currentTarget.style.transform = "translateY(0)";
+                }}
+              >
+                <span
+                  style={{
+                    width: 38,
+                    height: 38,
+                    flexShrink: 0,
+                    display: "grid",
+                    placeItems: "center",
+                    borderRadius: 10,
+                    background: "rgba(248,217,67,0.09)",
+                    color: "var(--yellow)",
+                  }}
+                >
+                  <QuickIcon name={item.icon} size={20} />
+                </span>
+
+                <span style={{ minWidth: 0 }}>
+                  <strong
+                    style={{
+                      display: "block",
+                      fontSize: 12,
+                      marginBottom: 4,
+                    }}
+                  >
+                    {item.label}
+                  </strong>
+                  <small
+                    style={{
+                      display: "block",
+                      color: "var(--muted)",
+                      fontSize: 10,
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    {item.description}
+                  </small>
+                </span>
+              </Link>
+            ))}
+          </section>
+
+          {/* AI PROFILE ANALYZER FEATURE */}
+          <section
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 20,
+              padding: "23px",
+              marginBottom: 18,
+              border: "1px solid rgba(119,112,255,0.4)",
+              borderRadius: 14,
+              background:
+                "linear-gradient(115deg, rgba(119,112,255,0.13), rgba(248,217,67,0.04))",
+            }}
+          >
+            <div style={{ maxWidth: 550 }}>
+              <p className="dashboard-eyebrow">YOUR AI-POWERED GUIDE</p>
+              <h2
+                style={{
+                  color: "var(--foreground)",
+                  fontSize: 21,
+                  margin: "8px 0",
+                }}
+              >
+                Understand your potential.
+              </h2>
+              <p
+                style={{
+                  color: "var(--muted)",
+                  fontSize: 13,
+                  lineHeight: 1.7,
+                  margin: 0,
+                }}
+              >
+                Let AI review your academic background, interests and skills
+                to help you discover strengths, career directions and your
+                next steps.
+              </p>
+            </div>
+
+            <Link
+              href="/analyzer"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 9,
+                padding: "12px 18px",
+                borderRadius: 8,
+                background: "var(--yellow)",
+                color: "#171717",
+                fontWeight: 700,
+                fontSize: 12,
+                textDecoration: "none",
+                whiteSpace: "nowrap",
+              }}
+            >
+              <QuickIcon name="analyzer" size={17} />
+              Analyze my profile ↗
+            </Link>
+          </section>
+
           {/* STUDENT PROFILE SUMMARY */}
           <section className="dashboard-panel" style={{ marginBottom: 18 }}>
             <div className="dashboard-panel-heading">
@@ -769,9 +951,7 @@ export default function DashboardPage() {
                     onChange={handleProfileChange}
                     placeholder="e.g. Web Development, AI, UI/UX, Robotics"
                   />
-                  <small>
-                    Separate each interest with a comma.
-                  </small>
+                  <small>Separate each interest with a comma.</small>
                 </label>
               </div>
 

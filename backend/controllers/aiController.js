@@ -7,7 +7,7 @@ const analyzeProfile = async (req, res) => {
     if (!process.env.GEMINI_API_KEY) {
       return res.status(500).json({
         success: false,
-        message: "Gemini API key is not configured on the server.",
+        message: "Gemini API key is missing from backend/.env",
       });
     }
 
@@ -22,110 +22,111 @@ const analyzeProfile = async (req, res) => {
 
     const dashboard = user.dashboard || {};
     const development = dashboard.development || {};
+    const paths = development.paths || {};
 
     const studentData = {
+      name: user.fullName,
       university: user.university || "Not provided",
       degree: user.degree || "Not provided",
       academicYear: user.year || "Not provided",
       interests: user.interests || [],
       skills: user.skills || [],
       savedCareers: dashboard.careerInterests || [],
-      savedUniversities: (dashboard.universities || []).map((item) => ({
-        name: item.name || item.university || "Unnamed university",
-        country: item.country || "Not specified",
-      })),
+      savedUniversities: dashboard.universities || [],
       learningPath: development.selectedPath || "Not selected",
-      completedSkills: development.completedSkills || [],
-      completedProjects: development.completedProjects || [],
+      learningProgress: paths,
     };
 
-    const ai = new GoogleGenAI({
-      apiKey: process.env.GEMINI_API_KEY,
-    });
-
     const prompt = `
-You are Onkur's student development advisor.
+You are Onkur's AI Student Development Advisor.
 
-Analyze the following student information and create a realistic,
-encouraging, practical development report.
+Analyze the following student's profile and create a personalized
+development report.
 
 STUDENT INFORMATION:
 ${JSON.stringify(studentData, null, 2)}
 
-IMPORTANT RULES:
-- Only use information provided in the student profile.
-- Do not invent grades, achievements, experience, or skills.
-- If information is missing, clearly mention that it is missing.
-- Do not guarantee university admission, scholarships, or employment.
-- Make recommendations relevant to the student's current academic level.
-- Keep the advice practical and beginner-friendly.
-- Do not assume that a saved career or university is a confirmed decision.
-- Avoid generic motivational statements.
+RULES:
+- Only use the information provided.
+- Never invent grades, achievements, skills or experience.
+- Clearly identify missing information.
+- Do not guarantee university admission, scholarships or employment.
+- Give realistic and beginner-friendly recommendations.
+- Treat saved careers and universities as interests, not confirmed decisions.
+- Make recommendations suitable for the student's academic level.
 
-Return ONLY valid JSON in this exact structure:
+Return ONLY valid JSON using this exact structure:
 
 {
-  "summary": "A short overall assessment of the student's current profile.",
+  "summary": "Overall student profile assessment",
   "strengths": [
-    "A specific strength supported by the provided information."
+    "Specific strength supported by the profile"
   ],
   "growthAreas": [
-    "An area the student could improve, with a short explanation."
+    "Area that needs improvement"
   ],
   "careerDirections": [
     {
       "title": "Career direction",
-      "reason": "Why this direction may suit the student."
+      "reason": "Why this direction may suit the student"
     }
   ],
   "skillsToBuild": [
     {
       "skill": "Skill name",
-      "reason": "Why the student should learn it.",
+      "reason": "Why this skill is useful",
       "priority": "High"
     }
   ],
   "actionPlan": [
     {
-      "step": "A practical action the student can take.",
-      "timeline": "Suggested timeframe."
+      "step": "Practical action",
+      "timeline": "Suggested timeframe"
     }
   ]
 }
 
-Provide 3 to 5 items in each list where enough information is available.
-If the profile is incomplete, make that clear rather than guessing.
+Provide 3 to 5 useful items per list when possible.
+Do not make unsupported assumptions.
 `;
 
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-        temperature: 0.4,
-      },
+    const ai = new GoogleGenAI({
+      apiKey: process.env.GEMINI_API_KEY,
     });
+
+    const response = await ai.interactions.create({
+      model: "gemini-3.8-flash",
+      input: prompt,
+    });
+
+    const responseText = response.output_text;
+
+    if (!responseText) {
+      throw new Error("Gemini returned an empty response.");
+    }
 
     let analysis;
 
     try {
-      analysis = JSON.parse(response.text);
+      analysis = JSON.parse(responseText);
     } catch (error) {
-      console.error("Gemini response parsing error:", error.message);
+      console.error("Gemini JSON parsing error:", responseText);
 
-      return res.status(502).json({
-        success: false,
-        message: "The AI returned an unexpected response. Please try again.",
-      });
+      throw new Error("Gemini returned an invalid JSON response.");
     }
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: "Your profile analysis is ready.",
       analysis,
     });
+
   } catch (error) {
-    console.error("AI profile analysis error:", error);
+    console.error("========== ONKUR AI ERROR ==========");
+    console.error("Message:", error.message);
+    console.error("Status:", error.status);
+    console.error("Stack:", error.stack);
+    console.error("====================================");
 
     if (error.status === 429) {
       return res.status(429).json({
@@ -134,16 +135,13 @@ If the profile is incomplete, make that clear rather than guessing.
       });
     }
 
-    if (error.status === 400 || error.status === 403) {
-      return res.status(502).json({
-        success: false,
-        message: "Gemini could not process the request. Check your API key and model access.",
-      });
-    }
-
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
-      message: "Unable to analyze your profile right now. Please try again.",
+      message: "Unable to analyze your profile.",
+      ...(process.env.NODE_ENV !== "production" && {
+        debug: error.message,
+        errorStatus: error.status || null,
+      }),
     });
   }
 };
