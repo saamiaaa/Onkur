@@ -2,27 +2,42 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 const defaultProfile = {
-  full_name: "Samia Akhter",
-  university: "East Delta University",
-  degree: "BSc in Computer Science & Engineering",
-  year: "2nd Year",
-  interests: [
-    "UI/UX Design",
-    "AI & Machine Learning",
-    "Web Development",
-    "Robotics & IoT",
-    "Creative Writing",
-  ],
+  full_name: "Student",
+  university: "University not added",
+  degree: "Degree not added",
+  year: "Year not added",
+  interests: [],
 };
 
 const initialTasks = [
-  { id: 1, title: "Complete your student profile", detail: "Add your academic background and interests", done: true },
-  { id: 2, title: "Explore your university options", detail: "Shortlist universities that match your goals", done: false },
-  { id: 3, title: "Explore career paths", detail: "Discover careers that interest you", done: false },
-  { id: 4, title: "Start a learning roadmap", detail: "Build skills for your chosen career", done: false },
+  {
+    id: 1,
+    title: "Complete your student profile",
+    detail: "Add your academic background and interests",
+    done: true,
+  },
+  {
+    id: 2,
+    title: "Explore your university options",
+    detail: "Shortlist universities that match your goals",
+    done: false,
+  },
+  {
+    id: 3,
+    title: "Explore career paths",
+    detail: "Discover careers that interest you",
+    done: false,
+  },
+  {
+    id: 4,
+    title: "Start a learning roadmap",
+    detail: "Build skills for your chosen career",
+    done: false,
+  },
 ];
 
 function readStorage(key, fallback) {
@@ -35,6 +50,8 @@ function readStorage(key, fallback) {
 }
 
 export default function DashboardPage() {
+  const router = useRouter();
+
   const [profile, setProfile] = useState(defaultProfile);
   const [tasks, setTasks] = useState(initialTasks);
   const [universities, setUniversities] = useState([]);
@@ -44,40 +61,100 @@ export default function DashboardPage() {
   const [showAllTasks, setShowAllTasks] = useState(false);
   const [activeNav, setActiveNav] = useState("overview");
 
+  const [authLoading, setAuthLoading] = useState(true);
+  const [authError, setAuthError] = useState("");
+
+  // VERIFY LOGIN AND LOAD USER DATA
   useEffect(() => {
-    const storedProfile =
-      readStorage("onkur-user-profile", null) ||
-      readStorage("onkur-user", null);
+    let isMounted = true;
 
-    if (storedProfile) {
-      const user = storedProfile.user || storedProfile;
-      const metadata = user.user_metadata || {};
+    const verifyUser = async () => {
+      try {
+        const response = await fetch(
+          "http://localhost:5000/api/auth/me",
+          {
+            method: "GET",
+            credentials: "include",
+          }
+        );
 
-      setProfile({
-        full_name:
-          user.full_name ||
-          user.fullName ||
-          user.name ||
-          metadata.full_name ||
-          metadata.name ||
-          defaultProfile.full_name,
-        university: user.university || defaultProfile.university,
-        degree: user.degree || defaultProfile.degree,
-        year: user.year || defaultProfile.year,
-        interests: Array.isArray(user.interests)
-          ? user.interests
-          : defaultProfile.interests,
-      });
-    }
+        if (response.status === 401) {
+          router.replace("/login");
+          return;
+        }
 
-    setTasks(readStorage("onkur-dashboard-tasks", initialTasks));
-    setUniversities(readStorage("onkur-dashboard-universities", []));
-    setCareerInterests(readStorage("onkur-career-interests", []));
-    setDevelopment(readStorage("onkur-development-progress", null));
-    setCommunity(readStorage("onkur-community-activity", null));
-  }, []);
+        if (!response.ok) {
+          throw new Error("Unable to verify your account.");
+        }
 
-  // Navigate to dashboard sections without leaving the dashboard
+        const data = await response.json();
+        const user = data.user || data;
+
+        if (!isMounted) return;
+
+        // LOAD AUTHENTICATED USER PROFILE
+        setProfile({
+          full_name:
+            user.fullName ||
+            user.full_name ||
+            "Student",
+
+          university:
+            user.university ||
+            "University not added",
+
+          degree:
+            user.degree ||
+            "Degree not added",
+
+          year:
+            user.year ||
+            "Year not added",
+
+          interests: Array.isArray(user.interests)
+            ? user.interests
+            : [],
+        });
+
+        // LOAD EXISTING DASHBOARD DATA
+        setTasks(
+          readStorage("onkur-dashboard-tasks", initialTasks)
+        );
+
+        setUniversities(
+          readStorage("onkur-dashboard-universities", [])
+        );
+
+        setCareerInterests(
+          readStorage("onkur-career-interests", [])
+        );
+
+        setDevelopment(
+          readStorage("onkur-development-progress", null)
+        );
+
+        setCommunity(
+          readStorage("onkur-community-activity", null)
+        );
+      } catch (error) {
+        if (isMounted) {
+          setAuthError(error.message);
+        }
+      } finally {
+        if (isMounted) {
+          setAuthLoading(false);
+        }
+      }
+    };
+
+    verifyUser();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [router]);
+
+  // NAVIGATE TO DASHBOARD SECTIONS
   function navigateToSection(event, sectionId) {
     event.preventDefault();
 
@@ -90,13 +167,17 @@ export default function DashboardPage() {
   }
 
   const completedTasks = tasks.filter((task) => task.done).length;
+
   const progress = tasks.length
     ? Math.round((completedTasks / tasks.length) * 100)
     : 0;
 
+  // TOGGLE TASK
   function toggleTask(id) {
     const updated = tasks.map((task) =>
-      task.id === id ? { ...task, done: !task.done } : task
+      task.id === id
+        ? { ...task, done: !task.done }
+        : task
     );
 
     setTasks(updated);
@@ -111,6 +192,7 @@ export default function DashboardPage() {
     }
   }
 
+  // REMOVE UNIVERSITY
   function removeUniversity(name) {
     const updated = universities.filter(
       (university) => university.name !== name
@@ -135,6 +217,53 @@ export default function DashboardPage() {
   const developmentSkills = development?.completedSkills || [];
   const developmentProjects = development?.completedProjects || [];
 
+  // AUTHENTICATION LOADING SCREEN
+  if (authLoading) {
+    return (
+      <main className="dashboard-page">
+        <div
+          style={{
+            minHeight: "100vh",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: "var(--foreground)",
+          }}
+        >
+          Verifying your account...
+        </div>
+      </main>
+    );
+  }
+
+  // AUTHENTICATION ERROR
+  if (authError) {
+    return (
+      <main className="dashboard-page">
+        <div
+          style={{
+            minHeight: "100vh",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "15px",
+            color: "var(--foreground)",
+            padding: "30px",
+            textAlign: "center",
+          }}
+        >
+          <h2>Unable to load your dashboard</h2>
+          <p>{authError}</p>
+
+          <button onClick={() => window.location.reload()}>
+            Try again
+          </button>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="dashboard-page">
       <aside className="dashboard-sidebar">
@@ -142,13 +271,17 @@ export default function DashboardPage() {
           onkur<span>.</span>
         </Link>
 
-        <div className="dashboard-sidebar-label">WORKSPACE</div>
+        <div className="dashboard-sidebar-label">
+          WORKSPACE
+        </div>
 
         <nav className="dashboard-nav">
           <Link
             href="#overview"
             className={activeNav === "overview" ? "active" : ""}
-            onClick={(event) => navigateToSection(event, "overview")}
+            onClick={(event) =>
+              navigateToSection(event, "overview")
+            }
           >
             <span>▦</span> Overview
           </Link>
@@ -156,7 +289,9 @@ export default function DashboardPage() {
           <Link
             href="#universities"
             className={activeNav === "universities" ? "active" : ""}
-            onClick={(event) => navigateToSection(event, "universities")}
+            onClick={(event) =>
+              navigateToSection(event, "universities")
+            }
           >
             <span>⌂</span> Universities
           </Link>
@@ -164,7 +299,9 @@ export default function DashboardPage() {
           <Link
             href="#careers"
             className={activeNav === "careers" ? "active" : ""}
-            onClick={(event) => navigateToSection(event, "careers")}
+            onClick={(event) =>
+              navigateToSection(event, "careers")
+            }
           >
             <span>◎</span> Career explorer
           </Link>
@@ -172,7 +309,9 @@ export default function DashboardPage() {
           <Link
             href="#development"
             className={activeNav === "development" ? "active" : ""}
-            onClick={(event) => navigateToSection(event, "development")}
+            onClick={(event) =>
+              navigateToSection(event, "development")
+            }
           >
             <span>↗</span> My development
           </Link>
@@ -180,19 +319,25 @@ export default function DashboardPage() {
           <Link
             href="#community"
             className={activeNav === "community" ? "active" : ""}
-            onClick={(event) => navigateToSection(event, "community")}
+            onClick={(event) =>
+              navigateToSection(event, "community")
+            }
           >
             <span>♧</span> Community
           </Link>
         </nav>
 
         <div className="dashboard-sidebar-bottom">
-          <div className="dashboard-sidebar-label">YOUR JOURNEY</div>
+          <div className="dashboard-sidebar-label">
+            YOUR JOURNEY
+          </div>
 
           <div className="dashboard-sidebar-tip">
             <div className="dashboard-tip-icon">✦</div>
             <h4>Small steps matter.</h4>
-            <p>Your future is built one decision at a time.</p>
+            <p>
+              Your future is built one decision at a time.
+            </p>
             <Link href="/develop">
               Continue learning <span>↗</span>
             </Link>
@@ -216,6 +361,7 @@ export default function DashboardPage() {
             <span className="dashboard-status">
               <i /> Your journey is active
             </span>
+
             <div className="dashboard-avatar">
               {profile.full_name
                 .split(" ")
@@ -228,6 +374,7 @@ export default function DashboardPage() {
         </header>
 
         <div className="dashboard-content">
+
           {/* WELCOME AND PROFILE */}
 
           <section
@@ -236,7 +383,9 @@ export default function DashboardPage() {
             style={{ scrollMarginTop: 24 }}
           >
             <div>
-              <p className="dashboard-eyebrow">YOUR PERSONAL SPACE</p>
+              <p className="dashboard-eyebrow">
+                YOUR PERSONAL SPACE
+              </p>
 
               <h1>
                 Welcome back, {profile.full_name.split(" ")[0]}
@@ -260,22 +409,32 @@ export default function DashboardPage() {
 
           {/* STUDENT INFORMATION */}
 
-          <section className="dashboard-panel" style={{ marginBottom: 18 }}>
+          <section
+            className="dashboard-panel"
+            style={{ marginBottom: 18 }}
+          >
             <div className="dashboard-panel-heading">
               <div>
-                <p className="dashboard-eyebrow">YOUR STUDENT PROFILE</p>
+                <p className="dashboard-eyebrow">
+                  YOUR STUDENT PROFILE
+                </p>
                 <h2>{profile.full_name}</h2>
               </div>
+
               <span className="dashboard-sparkle">✦</span>
             </div>
 
             <div className="dashboard-career-list">
               <article className="dashboard-career-item">
-                <div className="dashboard-career-number career-number-0">EDU</div>
+                <div className="dashboard-career-number career-number-0">
+                  EDU
+                </div>
+
                 <div className="dashboard-career-info">
                   <strong>{profile.university}</strong>
                   <small>{profile.degree}</small>
                 </div>
+
                 <div className="dashboard-match">
                   <strong>{profile.year}</strong>
                   <small>Academic year</small>
@@ -284,8 +443,17 @@ export default function DashboardPage() {
             </div>
 
             <div style={{ marginTop: 15 }}>
-              <p className="dashboard-eyebrow">AREAS OF INTEREST</p>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              <p className="dashboard-eyebrow">
+                AREAS OF INTEREST
+              </p>
+
+              <div
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: 8,
+                }}
+              >
                 {profile.interests.map((interest) => (
                   <span
                     key={interest}
@@ -300,6 +468,10 @@ export default function DashboardPage() {
                     {interest}
                   </span>
                 ))}
+
+                {profile.interests.length === 0 && (
+                  <span>No interests added yet.</span>
+                )}
               </div>
             </div>
           </section>
@@ -312,10 +484,13 @@ export default function DashboardPage() {
                 <span>SAVED UNIVERSITIES</span>
                 <span className="stat-icon yellow-icon">⌂</span>
               </div>
+
               <strong>
                 {universities.length.toString().padStart(2, "0")}
               </strong>
+
               <p>Universities in your shortlist</p>
+
               <Link href="/universities">
                 Explore universities ↗
               </Link>
@@ -326,10 +501,13 @@ export default function DashboardPage() {
                 <span>CAREER INTERESTS</span>
                 <span className="stat-icon violet-icon">◎</span>
               </div>
+
               <strong>
                 {careerInterests.length.toString().padStart(2, "0")}
               </strong>
+
               <p>Career paths you've explored</p>
+
               <Link href="/careers">
                 Explore careers ↗
               </Link>
@@ -340,13 +518,16 @@ export default function DashboardPage() {
                 <span>COMPLETED TASKS</span>
                 <span className="stat-icon blue-icon">✓</span>
               </div>
+
               <strong>
                 {completedTasks.toString().padStart(2, "0")}
                 <span>/{tasks.length.toString().padStart(2, "0")}</span>
               </strong>
+
               <div className="dashboard-stat-track">
                 <i style={{ width: `${progress}%` }} />
               </div>
+
               <p>Your personal checklist progress</p>
             </article>
           </section>
@@ -357,13 +538,17 @@ export default function DashboardPage() {
             <section className="dashboard-panel dashboard-tasks-panel">
               <div className="dashboard-panel-heading">
                 <div>
-                  <p className="dashboard-eyebrow">STAY ON TRACK</p>
+                  <p className="dashboard-eyebrow">
+                    STAY ON TRACK
+                  </p>
                   <h2>Your next steps</h2>
                 </div>
 
                 <button
                   className="dashboard-text-button"
-                  onClick={() => setShowAllTasks(!showAllTasks)}
+                  onClick={() =>
+                    setShowAllTasks(!showAllTasks)
+                  }
                 >
                   {showAllTasks ? "Show less ↑" : "View all →"}
                 </button>
@@ -372,8 +557,11 @@ export default function DashboardPage() {
               <div className="dashboard-task-progress">
                 <div>
                   <strong>{progress}% completed</strong>
-                  <span>{completedTasks} of {tasks.length} tasks</span>
+                  <span>
+                    {completedTasks} of {tasks.length} tasks
+                  </span>
                 </div>
+
                 <div className="dashboard-task-progress-track">
                   <i style={{ width: `${progress}%` }} />
                 </div>
@@ -382,7 +570,9 @@ export default function DashboardPage() {
               <div className="dashboard-task-list">
                 {displayedTasks.map((task) => (
                   <label
-                    className={`dashboard-task ${task.done ? "task-done" : ""}`}
+                    className={`dashboard-task ${
+                      task.done ? "task-done" : ""
+                    }`}
                     key={task.id}
                   >
                     <input
@@ -390,14 +580,19 @@ export default function DashboardPage() {
                       checked={task.done}
                       onChange={() => toggleTask(task.id)}
                     />
+
                     <span className="dashboard-custom-check">
                       {task.done ? "✓" : ""}
                     </span>
+
                     <span className="dashboard-task-copy">
                       <strong>{task.title}</strong>
                       <small>{task.detail}</small>
                     </span>
-                    <span className="dashboard-task-arrow">↗</span>
+
+                    <span className="dashboard-task-arrow">
+                      ↗
+                    </span>
                   </label>
                 ))}
               </div>
@@ -410,9 +605,12 @@ export default function DashboardPage() {
             >
               <div className="dashboard-panel-heading">
                 <div>
-                  <p className="dashboard-eyebrow">YOUR CAREER EXPLORATION</p>
+                  <p className="dashboard-eyebrow">
+                    YOUR CAREER EXPLORATION
+                  </p>
                   <h2>Career interests</h2>
                 </div>
+
                 <span className="dashboard-sparkle">✦</span>
               </div>
 
@@ -427,16 +625,24 @@ export default function DashboardPage() {
                       className="dashboard-career-item"
                       key={career.title || career.name || index}
                     >
-                      <div className={`dashboard-career-number career-number-${index % 3}`}>
+                      <div
+                        className={`dashboard-career-number career-number-${index % 3}`}
+                      >
                         0{index + 1}
                       </div>
+
                       <div className="dashboard-career-info">
                         <strong>
                           {typeof career === "string"
                             ? career
                             : career.title || career.name || "Career"}
                         </strong>
-                        <small>{career.category || "Career interest"}</small>
+
+                        <small>
+                          {typeof career === "string"
+                            ? "Career interest"
+                            : career.category || "Career interest"}
+                        </small>
                       </div>
                     </article>
                   ))}
@@ -446,7 +652,9 @@ export default function DashboardPage() {
                   <span>◎</span>
                   <div>
                     <strong>No career interests saved yet</strong>
-                    <p>Explore different paths and add the ones that interest you.</p>
+                    <p>
+                      Explore different paths and add the ones that interest you.
+                    </p>
                   </div>
                 </div>
               )}
@@ -466,10 +674,16 @@ export default function DashboardPage() {
           >
             <div className="dashboard-panel-heading">
               <div>
-                <p className="dashboard-eyebrow">YOUR DISCOVERIES</p>
+                <p className="dashboard-eyebrow">
+                  YOUR DISCOVERIES
+                </p>
                 <h2>Your university shortlist</h2>
               </div>
-              <Link href="/universities" className="dashboard-text-button">
+
+              <Link
+                href="/universities"
+                className="dashboard-text-button"
+              >
                 Explore universities →
               </Link>
             </div>
@@ -481,19 +695,32 @@ export default function DashboardPage() {
                     className="dashboard-university-card"
                     key={university.id || university.name}
                   >
-                    <div className={`dashboard-university-monogram ${university.color || "yellow"}`}>
-                      {university.short || university.name?.slice(0, 3)}
+                    <div
+                      className={`dashboard-university-monogram ${
+                        university.color || "yellow"
+                      }`}
+                    >
+                      {university.short ||
+                        university.name?.slice(0, 3)}
                     </div>
 
                     <div className="dashboard-university-info">
                       <strong>{university.name}</strong>
-                      <small>{university.location || university.city || university.country}</small>
-                      <span>{university.type || "University"}</span>
+                      <small>
+                        {university.location ||
+                          university.city ||
+                          university.country}
+                      </small>
+                      <span>
+                        {university.type || "University"}
+                      </span>
                     </div>
 
                     <button
                       className="dashboard-remove-university"
-                      onClick={() => removeUniversity(university.name)}
+                      onClick={() =>
+                        removeUniversity(university.name)
+                      }
                       aria-label={`Remove ${university.name}`}
                       title="Remove from shortlist"
                     >
@@ -507,9 +734,14 @@ export default function DashboardPage() {
                 <span>⌂</span>
                 <div>
                   <strong>Your shortlist is empty</strong>
-                  <p>Explore universities and save the ones you're interested in.</p>
+                  <p>
+                    Explore universities and save the ones you're interested in.
+                  </p>
                 </div>
-                <Link href="/universities">Explore universities →</Link>
+
+                <Link href="/universities">
+                  Explore universities →
+                </Link>
               </div>
             )}
           </section>
@@ -519,14 +751,23 @@ export default function DashboardPage() {
           <section
             id="development"
             className="dashboard-panel"
-            style={{ marginBottom: 17, scrollMarginTop: 24 }}
+            style={{
+              marginBottom: 17,
+              scrollMarginTop: 24,
+            }}
           >
             <div className="dashboard-panel-heading">
               <div>
-                <p className="dashboard-eyebrow">BUILD YOUR SKILLS</p>
+                <p className="dashboard-eyebrow">
+                  BUILD YOUR SKILLS
+                </p>
                 <h2>My development</h2>
               </div>
-              <Link href="/develop" className="dashboard-text-button">
+
+              <Link
+                href="/develop"
+                className="dashboard-text-button"
+              >
                 Open development →
               </Link>
             </div>
@@ -558,10 +799,20 @@ export default function DashboardPage() {
                     <div className="dashboard-stat-top">
                       <span>LEARNING PROGRESS</span>
                     </div>
-                    <strong>{development.progress ?? 0}<span>%</span></strong>
+
+                    <strong>
+                      {development.progress ?? 0}
+                      <span>%</span>
+                    </strong>
+
                     <div className="dashboard-stat-track">
-                      <i style={{ width: `${development.progress ?? 0}%` }} />
+                      <i
+                        style={{
+                          width: `${development.progress ?? 0}%`,
+                        }}
+                      />
                     </div>
+
                     <p>Progress in your learning path</p>
                   </article>
                 </div>
@@ -571,9 +822,14 @@ export default function DashboardPage() {
                 <span>↗</span>
                 <div>
                   <strong>No learning progress available yet</strong>
-                  <p>Choose a learning path and start building your skills and projects.</p>
+                  <p>
+                    Choose a learning path and start building your skills and projects.
+                  </p>
                 </div>
-                <Link href="/develop">Explore learning paths →</Link>
+
+                <Link href="/develop">
+                  Explore learning paths →
+                </Link>
               </div>
             )}
           </section>
@@ -583,14 +839,23 @@ export default function DashboardPage() {
           <section
             id="community"
             className="dashboard-panel"
-            style={{ marginBottom: 17, scrollMarginTop: 24 }}
+            style={{
+              marginBottom: 17,
+              scrollMarginTop: 24,
+            }}
           >
             <div className="dashboard-panel-heading">
               <div>
-                <p className="dashboard-eyebrow">YOUR STUDENT NETWORK</p>
+                <p className="dashboard-eyebrow">
+                  YOUR STUDENT NETWORK
+                </p>
                 <h2>Community activity</h2>
               </div>
-              <Link href="/connect" className="dashboard-text-button">
+
+              <Link
+                href="/connect"
+                className="dashboard-text-button"
+              >
                 Visit community →
               </Link>
             </div>
@@ -617,7 +882,9 @@ export default function DashboardPage() {
                   <div className="dashboard-stat-top">
                     <span>MENTORSHIP REQUESTS</span>
                   </div>
-                  <strong>{community.mentorshipRequests ?? 0}</strong>
+                  <strong>
+                    {community.mentorshipRequests ?? 0}
+                  </strong>
                   <p>Your mentorship activity</p>
                 </article>
               </div>
@@ -625,10 +892,17 @@ export default function DashboardPage() {
               <div className="dashboard-empty-universities">
                 <span>♧</span>
                 <div>
-                  <strong>Your community activity will appear here</strong>
-                  <p>Connect with students, share your work and explore mentorship opportunities.</p>
+                  <strong>
+                    Your community activity will appear here
+                  </strong>
+                  <p>
+                    Connect with students, share your work and explore mentorship opportunities.
+                  </p>
                 </div>
-                <Link href="/connect">Explore community →</Link>
+
+                <Link href="/connect">
+                  Explore community →
+                </Link>
               </div>
             )}
           </section>
@@ -639,7 +913,9 @@ export default function DashboardPage() {
             <span>
               onkur<span className="dashboard-footer-dot">.</span>
             </span>
+
             <p>Your journey, your pace.</p>
+
             <span>© 2026 Onkur</span>
           </footer>
         </div>
