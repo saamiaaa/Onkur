@@ -147,11 +147,16 @@ export default function UniversitiesPage() {
   }
 
   // PERSONALIZED UNIVERSITY MATCHES
+  // ONLY HIGH-SCHOOL STUDENTS RECEIVE UNIVERSITY RECOMMENDATIONS
+  const shouldShowRecommendations =
+    isAuthenticated &&
+    studentProfile?.educationLevel === "high_school";
+
   const recommendedUniversities = useMemo(() => {
-    if (!isAuthenticated || !studentProfile) return [];
+    if (!shouldShowRecommendations || !studentProfile) return [];
 
     return getUniversityMatches(universities, studentProfile).slice(0, 3);
-  }, [isAuthenticated, studentProfile]);
+  }, [shouldShowRecommendations, studentProfile]);
 
   // FILTER OPTIONS
   const countries = useMemo(
@@ -395,7 +400,7 @@ export default function UniversitiesPage() {
         <div className="container">
 
           {/* PERSONALIZED RECOMMENDATIONS */}
-          {isAuthenticated && !isLoadingSaved && (
+          {shouldShowRecommendations && !isLoadingSaved && (
             <section style={{ marginBottom: "55px" }}>
               <div className="explorer-heading">
                 <div>
