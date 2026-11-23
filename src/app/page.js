@@ -79,7 +79,7 @@ export default function Home() {
         <nav className="nav-links">
           <a href="/universities">Universities</a>
           <a href="/careers">Careers</a>
-          <a href="#develop">Develop</a>
+          <a href="/develop">Develop</a>
           <a href="#connect">Connect</a>
         </nav>
 
@@ -401,7 +401,7 @@ export default function Home() {
         <div className="footer-links">
           <a href="/universities">Universities</a>
           <a href="/careers">Careers</a>
-          <a href="#develop">Develop</a>
+          <a href="/develop">Develop</a>
           <a href="#connect">Connect</a>
         </div>
       </footer>
