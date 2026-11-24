@@ -340,12 +340,9 @@ export default function DevelopPage() {
         </nav>
 
         <div className="nav-actions">
-          <Link href="/universities" className="login-link">
-            Explore universities
-          </Link>
-          <Link href="/careers" className="primary-button">
-            Explore careers ↗
-          </Link>
+            <Link href="/dashboard" className="login-link">
+             My Dashboard
+           </Link>
         </div>
       </header>
 

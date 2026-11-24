@@ -582,8 +582,14 @@ export default function DashboardPage() {
 
   const displayedTasks = showAllTasks ? tasks : tasks.slice(0, 3);
 
-  const developmentSkills = development?.completedSkills || [];
-  const developmentProjects = development?.completedProjects || [];
+  const selectedDevelopmentProgress =
+  development?.paths?.[development?.selectedPath] || {};
+
+  const developmentSkills =
+  selectedDevelopmentProgress.completedSkills || [];
+
+  const developmentProjects =
+  selectedDevelopmentProgress.completedProjects || [];
 
   if (authLoading) {
     return (
