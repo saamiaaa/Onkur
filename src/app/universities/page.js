@@ -31,6 +31,9 @@ function getCurrencySymbol(currency) {
     SGD: "S$",
     AUD: "A$",
     GBP: "£",
+    EUR: "€",
+    MYR: "RM",
+    JPY: "¥",
   };
 
   return symbols[currency] || `${currency || ""} `;
@@ -147,6 +150,17 @@ export default function UniversitiesPage() {
     };
   }, []);
 
+  // PERSONALIZED UNIVERSITY MATCHES
+  // Available to every logged-in student.
+  const shouldShowRecommendations =
+    isAuthenticated && !!studentProfile;
+
+  const recommendedUniversities = useMemo(() => {
+    if (!shouldShowRecommendations || !studentProfile) return [];
+
+    return getUniversityMatches(universities, studentProfile).slice(0, 3);
+  }, [shouldShowRecommendations, studentProfile]);
+
   // LOGIN REQUIREMENT
   function requireLogin() {
     if (isLoadingSaved) return false;
@@ -158,17 +172,6 @@ export default function UniversitiesPage() {
 
     return true;
   }
-
-  // PERSONALIZED UNIVERSITY MATCHES
-  const shouldShowRecommendations =
-    isAuthenticated &&
-    studentProfile?.educationLevel === "high_school";
-
-  const recommendedUniversities = useMemo(() => {
-    if (!shouldShowRecommendations || !studentProfile) return [];
-
-    return getUniversityMatches(universities, studentProfile).slice(0, 3);
-  }, [shouldShowRecommendations, studentProfile]);
 
   // FILTER OPTIONS
   const countries = useMemo(
@@ -491,7 +494,7 @@ export default function UniversitiesPage() {
                               color: "var(--muted, #a0a0a0)",
                             }}
                           >
-                            {uni.matchReasons.map((reason, index) => (
+                            {(uni.matchReasons || []).map((reason, index) => (
                               <li key={`${uni.id}-reason-${index}`}>
                                 {reason}
                               </li>
@@ -499,7 +502,7 @@ export default function UniversitiesPage() {
                           </ul>
                         </div>
 
-                        {uni.matchedSubjects.length > 0 && (
+                        {uni.matchedSubjects?.length > 0 && (
                           <div className="university-subjects">
                             {uni.matchedSubjects.map((item, index) => (
                               <span key={`${uni.id}-matched-${index}`}>
@@ -552,7 +555,7 @@ export default function UniversitiesPage() {
                   <div>
                     <h3>Let's complete your student profile.</h3>
                     <p>
-                      Add your degree, interests, and skills to receive
+                      Add your degree, interests, and preferences to receive
                       personalized university recommendations.
                     </p>
 
