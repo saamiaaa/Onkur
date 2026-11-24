@@ -1,6 +1,14 @@
+
+"use client";
+
+import "./HomeHeroAnimation.css";
+import { useEffect, useState } from "react";
 import ParticleBookIntro from "./components/ParticleBookIntro";
 import CursorParticles from "./components/CursorParticles";
 import ScrollReveal from "./components/ScrollReveal";
+
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
 const problems = [
   {
@@ -32,6 +40,7 @@ const pillars = [
       "Explore universities in Bangladesh and abroad, compare degrees, discover scholarships and find career paths aligned with your interests.",
     link: "Explore your options",
     id: "discover",
+    href: "/universities",
   },
   {
     number: "02",
@@ -41,6 +50,7 @@ const pillars = [
       "Understand the skills your chosen path requires, follow personalized roadmaps and prepare for your academic and professional future.",
     link: "Build your future",
     id: "develop",
+    href: "/develop",
   },
   {
     number: "03",
@@ -50,6 +60,7 @@ const pillars = [
       "Connect with mentors, university students and alumni. Share experiences, ask questions and grow with your community.",
     link: "Find your people",
     id: "connect",
+    href: "/connect",
   },
 ];
 
@@ -68,30 +79,138 @@ const comparison = [
 ];
 
 export default function Home() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [pendingDestination, setPendingDestination] = useState("");
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function checkAuthentication() {
+      try {
+        const response = await fetch(`${API_URL}/auth/me`, {
+          method: "GET",
+          credentials: "include",
+          cache: "no-store",
+        });
+
+        if (isMounted) {
+          setIsAuthenticated(response.ok);
+        }
+      } catch (error) {
+        console.error("Homepage authentication check failed:", error);
+
+        if (isMounted) {
+          setIsAuthenticated(false);
+        }
+      } finally {
+        if (isMounted) {
+          setAuthChecked(true);
+        }
+      }
+    }
+
+    checkAuthentication();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  function handleProtectedNavigation(event, destination) {
+    event.preventDefault();
+
+    if (!authChecked) {
+      setPendingDestination(destination);
+      setShowAuthModal(true);
+      return;
+    }
+
+    if (isAuthenticated) {
+      window.location.href = destination;
+      return;
+    }
+
+    setPendingDestination(destination);
+    setShowAuthModal(true);
+  }
+
+  function closeAuthModal() {
+    setShowAuthModal(false);
+    setPendingDestination("");
+  }
+
   return (
     <>
-    <CursorParticles />
+      <CursorParticles />
       <div className="site-background" />
 
       <header className="container navbar">
-        <a href="#" className="logo">onkur<span>.</span></a>
+        <a href="/" className="logo">
+          onkur<span>.</span>
+        </a>
 
         <nav className="nav-links">
-          <a href="/universities">Universities</a>
-          <a href="/careers">Careers</a>
-          <a href="/develop">Develop</a>
-          <a href="/connect">Connect</a>
+          <a
+            href="/universities"
+            onClick={(event) =>
+              handleProtectedNavigation(event, "/universities")
+            }
+          >
+            Universities
+          </a>
+
+          <a
+            href="/careers"
+            onClick={(event) =>
+              handleProtectedNavigation(event, "/careers")
+            }
+          >
+            Careers
+          </a>
+
+          <a
+            href="/develop"
+            onClick={(event) =>
+              handleProtectedNavigation(event, "/develop")
+            }
+          >
+            Develop
+          </a>
+
+          <a
+            href="/connect"
+            onClick={(event) =>
+              handleProtectedNavigation(event, "/connect")
+            }
+          >
+            Connect
+          </a>
         </nav>
 
         <div className="nav-actions">
-          <a href="/login" className="login-link">Log in</a>
-          <a href="/signup" className="primary-button">Get Started →</a>
+          {isAuthenticated && authChecked ? (
+            <a href="/dashboard" className="primary-button">
+              My Dashboard →
+            </a>
+          ) : (
+            <>
+              <a href="/login" className="login-link">
+                Log in
+              </a>
+              <a href="/signup" className="primary-button">
+                Get Started →
+              </a>
+            </>
+          )}
         </div>
       </header>
 
       <main>
         <ScrollReveal />
         <ParticleBookIntro />
+
         <section className="container hero" data-reveal>
           <div>
             <div className="eyebrow">Your future, figured out</div>
@@ -217,12 +336,23 @@ export default function Home() {
 
           <div className="pillar-grid">
             {pillars.map((pillar) => (
-              <article className="pillar-card" key={pillar.number} id={pillar.id}>
+              <article
+                className="pillar-card"
+                key={pillar.number}
+                id={pillar.id}
+              >
                 <div className="card-number">{pillar.number}</div>
                 <div className="pillar-icon">{pillar.icon}</div>
                 <h3>{pillar.title}</h3>
                 <p>{pillar.description}</p>
-                <a href="/signup" className="pillar-link">
+
+                <a
+                  href={pillar.href}
+                  className="pillar-link"
+                  onClick={(event) =>
+                    handleProtectedNavigation(event, pillar.href)
+                  }
+                >
                   {pillar.link} →
                 </a>
               </article>
@@ -230,7 +360,11 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="container section feature-section" id="discover" data-reveal>
+        <section
+          className="container section feature-section"
+          id="discover"
+          data-reveal
+        >
           <div>
             <div className="eyebrow">Your options, side by side</div>
             <div className="section-heading">
@@ -252,6 +386,17 @@ export default function Home() {
                 </li>
               ))}
             </ul>
+
+            <a
+              href="/universities"
+              className="primary-button"
+              style={{ marginTop: 22 }}
+              onClick={(event) =>
+                handleProtectedNavigation(event, "/universities")
+              }
+            >
+              Open University Explorer →
+            </a>
           </div>
 
           <div className="preview-panel">
@@ -298,24 +443,46 @@ export default function Home() {
             <article className="pillar-card">
               <div className="pillar-icon">⌘</div>
               <h3>Explore careers</h3>
-              <p>Discover career paths based on your interests, strengths and academic preferences.</p>
+              <p>
+                Discover career paths based on your interests, strengths
+                and academic preferences.
+              </p>
+              <a
+                href="/careers"
+                className="pillar-link"
+                onClick={(event) =>
+                  handleProtectedNavigation(event, "/careers")
+                }
+              >
+                Explore careers →
+              </a>
             </article>
 
             <article className="pillar-card">
               <div className="pillar-icon">✳</div>
               <h3>Understand skills</h3>
-              <p>Learn about the technical and professional skills different careers demand.</p>
+              <p>
+                Learn about the technical and professional skills
+                different careers demand.
+              </p>
             </article>
 
             <article className="pillar-card">
               <div className="pillar-icon">↗</div>
               <h3>Plan your journey</h3>
-              <p>Connect your education, learning goals and future career into a clearer roadmap.</p>
+              <p>
+                Connect your education, learning goals and future
+                career into a clearer roadmap.
+              </p>
             </article>
           </div>
         </section>
 
-        <section className="container section feature-section" id="develop" data-reveal>
+        <section
+          className="container section feature-section"
+          id="develop"
+          data-reveal
+        >
           <div>
             <div className="eyebrow">Growth with direction</div>
             <div className="section-heading">
@@ -336,6 +503,17 @@ export default function Home() {
               <li><span className="check">✦</span> Project and portfolio development</li>
               <li><span className="check">✦</span> Learning progress tracking</li>
             </ul>
+
+            <a
+              href="/develop"
+              className="primary-button"
+              style={{ marginTop: 22 }}
+              onClick={(event) =>
+                handleProtectedNavigation(event, "/develop")
+              }
+            >
+              Start Developing →
+            </a>
           </div>
 
           <div className="preview-panel">
@@ -349,9 +527,15 @@ export default function Home() {
               { name: "Prepare your portfolio", width: "10%", value: "Upcoming" },
             ].map((item) => (
               <div className="progress-item" key={item.name}>
-                <div><span>{item.name}</span><span>{item.value}</span></div>
+                <div>
+                  <span>{item.name}</span>
+                  <span>{item.value}</span>
+                </div>
                 <div className="progress-track">
-                  <div className="progress-fill" style={{ width: item.width }} />
+                  <div
+                    className="progress-fill"
+                    style={{ width: item.width }}
+                  />
                 </div>
               </div>
             ))}
@@ -370,6 +554,17 @@ export default function Home() {
               who can share experiences and help you navigate
               your next steps.
             </p>
+
+            <a
+              href="/connect"
+              className="primary-button"
+              style={{ marginTop: 22 }}
+              onClick={(event) =>
+                handleProtectedNavigation(event, "/connect")
+              }
+            >
+              Visit Community →
+            </a>
           </div>
         </section>
 
@@ -393,18 +588,182 @@ export default function Home() {
 
       <footer className="container footer">
         <div>
-          <a href="#" className="logo">onkur<span>.</span></a>
-          <p style={{ marginTop: 12 }}>Find your direction. Build your future.</p>
-          <p style={{ marginTop: 8 }}>© 2026 Onkur. All rights reserved.</p>
+          <a href="/" className="logo">
+            onkur<span>.</span>
+          </a>
+          <p style={{ marginTop: 12 }}>
+            Find your direction. Build your future.
+          </p>
+          <p style={{ marginTop: 8 }}>
+            © 2026 Onkur. All rights reserved.
+          </p>
         </div>
 
         <div className="footer-links">
-          <a href="/universities">Universities</a>
-          <a href="/careers">Careers</a>
-          <a href="/develop">Develop</a>
-          <a href="/connect">Connect</a>
+          {[
+            { label: "Universities", href: "/universities" },
+            { label: "Careers", href: "/careers" },
+            { label: "Develop", href: "/develop" },
+            { label: "Connect", href: "/connect" },
+          ].map((item) => (
+            <a
+              key={item.href}
+              href={item.href}
+              onClick={(event) =>
+                handleProtectedNavigation(event, item.href)
+              }
+            >
+              {item.label}
+            </a>
+          ))}
         </div>
       </footer>
+
+      {showAuthModal && (
+        <div
+          role="presentation"
+          onClick={closeAuthModal}
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 9999,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 20,
+            background: "rgba(0, 0, 0, 0.72)",
+            backdropFilter: "blur(8px)",
+          }}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="auth-modal-title"
+            onClick={(event) => event.stopPropagation()}
+            style={{
+              position: "relative",
+              width: "100%",
+              maxWidth: 430,
+              padding: "38px 32px",
+              border: "1px solid rgba(255,255,255,0.12)",
+              borderRadius: 18,
+              background: "#191a23",
+              boxShadow: "0 25px 80px rgba(0,0,0,0.5)",
+              textAlign: "center",
+            }}
+          >
+            <button
+              type="button"
+              onClick={closeAuthModal}
+              aria-label="Close login prompt"
+              style={{
+                position: "absolute",
+                top: 14,
+                right: 17,
+                border: "none",
+                background: "transparent",
+                color: "#a4a4b2",
+                fontSize: 24,
+                cursor: "pointer",
+              }}
+            >
+              ×
+            </button>
+
+            <div
+              style={{
+                width: 58,
+                height: 58,
+                margin: "0 auto 20px",
+                display: "grid",
+                placeItems: "center",
+                borderRadius: 16,
+                background: "rgba(248,217,67,0.1)",
+                color: "#f8d943",
+                fontSize: 27,
+              }}
+            >
+              ✦
+            </div>
+
+            <p
+              style={{
+                color: "#f8d943",
+                fontSize: 10,
+                fontWeight: 800,
+                letterSpacing: 2,
+                marginBottom: 13,
+              }}
+            >
+              YOUR ONKUR JOURNEY
+            </p>
+
+            <h2
+              id="auth-modal-title"
+              style={{
+                color: "#f1f0eb",
+                fontSize: 27,
+                lineHeight: 1.25,
+                letterSpacing: -1,
+                marginBottom: 12,
+              }}
+            >
+              Your next step starts with an account.
+            </h2>
+
+            <p
+              style={{
+                color: "#a4a4b2",
+                fontSize: 13,
+                lineHeight: 1.8,
+                marginBottom: 25,
+              }}
+            >
+              Log in or create a free Onkur account to explore
+              universities, discover careers, track your development
+              and connect with other students.
+            </p>
+
+            <div
+              style={{
+                display: "grid",
+                gap: 11,
+              }}
+            >
+              <a
+                href="/login"
+                className="primary-button"
+                style={{ width: "100%" }}
+              >
+                Log in to Onkur →
+              </a>
+
+              <a
+                href="/signup"
+                className="secondary-button"
+                style={{
+                  width: "100%",
+                  borderColor: "rgba(255,255,255,0.15)",
+                }}
+              >
+                Create an account
+              </a>
+            </div>
+
+            <p
+              style={{
+                color: "#777785",
+                fontSize: 10,
+                marginTop: 19,
+              }}
+            >
+              {pendingDestination
+                ? "Sign in to continue to your selected section."
+                : "Your student journey starts here."}
+            </p>
+          </section>
+        </div>
+      )}
     </>
   );
 }
