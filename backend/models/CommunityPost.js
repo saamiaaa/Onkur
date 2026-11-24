@@ -1,3 +1,4 @@
+
 const mongoose = require("mongoose");
 
 const communityPostSchema = new mongoose.Schema(
@@ -6,6 +7,7 @@ const communityPostSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
+      index: true,
     },
     title: {
       type: String,
@@ -21,7 +23,12 @@ const communityPostSchema = new mongoose.Schema(
     },
     category: {
       type: String,
-      enum: ["Discussion", "Question", "Project Showcase", "Opportunity"],
+      enum: [
+        "Discussion",
+        "Question",
+        "Project Showcase",
+        "Opportunity",
+      ],
       default: "Discussion",
     },
     tags: {
@@ -37,6 +44,8 @@ const communityPostSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+communityPostSchema.index({ createdAt: -1 });
 
 module.exports =
   mongoose.models.CommunityPost ||
