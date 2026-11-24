@@ -9,6 +9,13 @@ const API_URL =
 
 const filters = ["All Posts", "Discussions", "Projects", "Opportunities"];
 
+const categories = [
+  "Discussion",
+  "Question",
+  "Project Showcase",
+  "Opportunity",
+];
+
 function getInitials(name = "Onkur Student") {
   return name
     .split(" ")
@@ -57,6 +64,7 @@ function normalizePost(post) {
     comments: Number(post.comments) || 0,
     shares: Number(post.shares) || 0,
     time: post.time || post.createdAt,
+    isOwner: Boolean(post.isOwner),
   };
 }
 
@@ -70,6 +78,15 @@ export default function ConnectPage() {
   const [isLoadingPosts, setIsLoadingPosts] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [likingPostId, setLikingPostId] = useState(null);
+  const [editingPostId, setEditingPostId] = useState(null);
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const [deletingPostId, setDeletingPostId] = useState(null);
+
+  const [editForm, setEditForm] = useState({
+    title: "",
+    content: "",
+    category: "Discussion",
+  });
 
   const [activeFilter, setActiveFilter] = useState("All Posts");
   const [search, setSearch] = useState("");
@@ -119,7 +136,6 @@ export default function ConnectPage() {
     }
   }
 
-  // Authenticate the user and load their community feed.
   useEffect(() => {
     let isMounted = true;
 
@@ -215,14 +231,9 @@ export default function ConnectPage() {
   }, [posts, search, activeFilter]);
 
   const myPosts = useMemo(() => {
-    if (!currentUser) return [];
+    return posts.filter((post) => post.isOwner);
+  }, [posts]);
 
-    return posts.filter((post) => {
-      return post.name === userName;
-    });
-  }, [posts, currentUser, userName]);
-
-  // Publish a post to MongoDB.
   async function publishPost() {
     if (!newPost.trim() || isPublishing) return;
 
@@ -270,7 +281,115 @@ export default function ConnectPage() {
     }
   }
 
-  // Like or unlike a post using the backend.
+  function startEditing(post) {
+    setEditingPostId(post.id);
+
+    setEditForm({
+      title: post.title,
+      content: post.content,
+      category: post.category,
+    });
+  }
+
+  function cancelEditing() {
+    setEditingPostId(null);
+
+    setEditForm({
+      title: "",
+      content: "",
+      category: "Discussion",
+    });
+  }
+
+  async function saveEditedPost(id) {
+    if (!editForm.title.trim() || isSavingEdit) {
+      showNotice("Post title cannot be empty.");
+      return;
+    }
+
+    setIsSavingEdit(true);
+
+    try {
+      const response = await fetch(`${API_URL}/community/posts/${id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          title: editForm.title.trim(),
+          content: editForm.content.trim(),
+          category: editForm.category,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Unable to update your post.");
+      }
+
+      setPosts((current) =>
+        current.map((post) =>
+          post.id === id
+            ? normalizePost({
+                ...post,
+                ...data.post,
+                id,
+                isOwner: true,
+              })
+            : post
+        )
+      );
+
+      cancelEditing();
+      showNotice("Your post has been updated!");
+    } catch (err) {
+      console.error("Edit post error:", err);
+      showNotice(err.message || "Unable to update your post.");
+    } finally {
+      setIsSavingEdit(false);
+    }
+  }
+
+  async function deletePost(id) {
+    const confirmed = window.confirm(
+      "Are you sure you want to delete this post? This action cannot be undone."
+    );
+
+    if (!confirmed || deletingPostId) return;
+
+    setDeletingPostId(id);
+
+    try {
+      const response = await fetch(`${API_URL}/community/posts/${id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Unable to delete your post.");
+      }
+
+      setPosts((current) =>
+        current.filter((post) => post.id !== id)
+      );
+
+      if (editingPostId === id) {
+        cancelEditing();
+      }
+
+      showNotice("Your post has been deleted.");
+    } catch (err) {
+      console.error("Delete post error:", err);
+      showNotice(err.message || "Unable to delete your post.");
+    } finally {
+      setDeletingPostId(null);
+    }
+  }
+
   async function toggleLike(id) {
     if (likingPostId) return;
 
@@ -326,7 +445,6 @@ export default function ConnectPage() {
     }
   }
 
-  // Loading screen.
   if (isCheckingAuth) {
     return (
       <main className="connect-page">
@@ -340,7 +458,6 @@ export default function ConnectPage() {
     );
   }
 
-  // Signed-out screen.
   if (!isAuthenticated) {
     return (
       <main className="connect-page">
@@ -696,66 +813,176 @@ export default function ConnectPage() {
                         <span>{post.university}</span>
                         <small>{formatPostTime(post.time)}</small>
                       </div>
+
+                      {post.isOwner && (
+                        <div className="connect-owner-actions">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              editingPostId === post.id
+                                ? cancelEditing()
+                                : startEditing(post)
+                            }
+                            disabled={isSavingEdit || deletingPostId === post.id}
+                          >
+                            {editingPostId === post.id ? "Cancel edit" : "Edit"}
+                          </button>
+
+                          <button
+                            type="button"
+                            className="connect-delete-button"
+                            onClick={() => deletePost(post.id)}
+                            disabled={deletingPostId === post.id}
+                          >
+                            {deletingPostId === post.id
+                              ? "Deleting..."
+                              : "Delete"}
+                          </button>
+                        </div>
+                      )}
                     </div>
 
-                    <div className="connect-post-body">
-                      <span
-                        className={`connect-category ${
-                          post.category === "Opportunity"
-                            ? "opportunity"
-                            : post.category === "Question"
-                              ? "question"
-                              : ""
-                        }`}
-                      >
-                        {post.category}
-                      </span>
+                    {editingPostId === post.id ? (
+                      <div className="connect-composer connect-edit-form">
+                        <h3>Edit your post</h3>
 
-                      <h3>{post.title}</h3>
+                        <label>
+                          Post title
+                          <input
+                            type="text"
+                            value={editForm.title}
+                            maxLength={1000}
+                            onChange={(e) =>
+                              setEditForm((current) => ({
+                                ...current,
+                                title: e.target.value,
+                              }))
+                            }
+                          />
+                        </label>
 
-                      {post.content && <p>{post.content}</p>}
+                        <label>
+                          Description
+                          <textarea
+                            value={editForm.content}
+                            maxLength={3000}
+                            onChange={(e) =>
+                              setEditForm((current) => ({
+                                ...current,
+                                content: e.target.value,
+                              }))
+                            }
+                            placeholder="Add more details to your post..."
+                          />
+                        </label>
 
-                      <div className="connect-post-tags">
-                        {post.tags.map((tag, index) => (
-                          <span key={`${post.id}-${tag}-${index}`}>
-                            #{tag.replaceAll(" ", "")}
+                        <label>
+                          Category
+                          <select
+                            value={editForm.category}
+                            onChange={(e) =>
+                              setEditForm((current) => ({
+                                ...current,
+                                category: e.target.value,
+                              }))
+                            }
+                          >
+                            {categories.map((category) => (
+                              <option key={category} value={category}>
+                                {category}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+
+                        <div className="connect-composer-bottom">
+                          <span>
+                            {editForm.title.length}/1000 title characters
                           </span>
-                        ))}
+
+                          <div>
+                            <button
+                              className="connect-cancel-button"
+                              onClick={cancelEditing}
+                              disabled={isSavingEdit}
+                            >
+                              Cancel
+                            </button>
+
+                            <button
+                              className="connect-publish-button"
+                              onClick={() => saveEditedPost(post.id)}
+                              disabled={
+                                !editForm.title.trim() || isSavingEdit
+                              }
+                            >
+                              {isSavingEdit ? "Saving..." : "Save changes"}
+                            </button>
+                          </div>
+                        </div>
                       </div>
-                    </div>
+                    ) : (
+                      <>
+                        <div className="connect-post-body">
+                          <span
+                            className={`connect-category ${
+                              post.category === "Opportunity"
+                                ? "opportunity"
+                                : post.category === "Question"
+                                  ? "question"
+                                  : ""
+                            }`}
+                          >
+                            {post.category}
+                          </span>
 
-                    <div className="connect-post-stats">
-                      <span>{post.likes} likes</span>
-                      <span>{post.comments} comments</span>
-                      <span>{post.shares} shares</span>
-                    </div>
+                          <h3>{post.title}</h3>
 
-                    <div className="connect-post-actions">
-                      <button
-                        className={post.liked ? "liked" : ""}
-                        onClick={() => toggleLike(post.id)}
-                        disabled={likingPostId === post.id}
-                      >
-                        <span>{post.liked ? "♥" : "♡"}</span>
-                        {likingPostId === post.id
-                          ? "Updating..."
-                          : "Like"}
-                      </button>
+                          {post.content && <p>{post.content}</p>}
 
-                      <button
-                        onClick={() =>
-                          showNotice(
-                            "Comments are not connected to the backend yet."
-                          )
-                        }
-                      >
-                        <span>▢</span> Comment
-                      </button>
+                          <div className="connect-post-tags">
+                            {post.tags.map((tag, index) => (
+                              <span key={`${post.id}-${tag}-${index}`}>
+                                #{tag.replaceAll(" ", "")}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
 
-                      <button onClick={() => sharePost(post)}>
-                        <span>↗</span> Share
-                      </button>
-                    </div>
+                        <div className="connect-post-stats">
+                          <span>{post.likes} likes</span>
+                          <span>{post.comments} comments</span>
+                          <span>{post.shares} shares</span>
+                        </div>
+
+                        <div className="connect-post-actions">
+                          <button
+                            className={post.liked ? "liked" : ""}
+                            onClick={() => toggleLike(post.id)}
+                            disabled={likingPostId === post.id}
+                          >
+                            <span>{post.liked ? "♥" : "♡"}</span>
+                            {likingPostId === post.id
+                              ? "Updating..."
+                              : "Like"}
+                          </button>
+
+                          <button
+                            onClick={() =>
+                              showNotice(
+                                "Comments are not connected to the backend yet."
+                              )
+                            }
+                          >
+                            <span>▢</span> Comment
+                          </button>
+
+                          <button onClick={() => sharePost(post)}>
+                            <span>↗</span> Share
+                          </button>
+                        </div>
+                      </>
+                    )}
                   </article>
                 ))
               ) : !error ? (
@@ -868,9 +1095,7 @@ export default function ConnectPage() {
                 },
               ].map((item) => (
                 <div className="connect-mentor-item" key={item.label}>
-                  <div className="connect-avatar violet">
-                    ✳
-                  </div>
+                  <div className="connect-avatar violet">✳</div>
 
                   <div className="connect-mentor-info">
                     <strong>{item.label}</strong>
