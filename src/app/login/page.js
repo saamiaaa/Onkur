@@ -6,6 +6,9 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import "./login.css";
 
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+
 export default function LoginPage() {
   const router = useRouter();
 
@@ -25,20 +28,17 @@ export default function LoginPage() {
     try {
       setLoading(true);
 
-      const response = await fetch(
-        "http://localhost:5000/api/auth/signin",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-          body: JSON.stringify({
-            email,
-            password,
-          }),
-        }
-      );
+      const response = await fetch(`${API_URL}/auth/signin`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          email,
+          password,
+        }),
+      });
 
       const data = await response.json();
 
@@ -70,7 +70,6 @@ export default function LoginPage() {
       </nav>
 
       <section className="login-layout">
-        {/* LEFT SIDE */}
         <div className="login-intro">
           <div className="login-intro-label">
             <span />
@@ -124,7 +123,6 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* RIGHT SIDE */}
         <div className="login-form-wrapper">
           <div className="login-form-card">
             <div className="login-form-heading">

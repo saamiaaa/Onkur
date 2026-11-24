@@ -336,7 +336,7 @@ export default function DevelopPage() {
           <Link href="/universities">Universities</Link>
           <Link href="/careers">Careers</Link>
           <Link href="/develop" className="active-nav">Develop</Link>
-          <Link href="/#connect">Connect</Link>
+          <Link href="/connect">Connect</Link>
         </nav>
 
         <div className="nav-actions">
@@ -590,7 +590,7 @@ export default function DevelopPage() {
                     Collect your projects, document what you learned and
                     prepare a portfolio that shows your progress.
                   </p>
-                  <Link href="/#connect">
+                  <Link href="/connect">
                     Discover the Onkur community ↗
                   </Link>
                 </div>
