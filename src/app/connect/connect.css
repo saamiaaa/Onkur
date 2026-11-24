@@ -1,0 +1,86 @@
+
+/* ========================================
+   CONNECT PAGE — EDIT & DELETE POST BUTTONS
+======================================== */
+
+.connect-owner-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.connect-owner-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  padding: 7px 14px;
+
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 8px;
+
+  background: rgba(255, 255, 255, 0.06);
+  color: #f1f0eb;
+
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+
+  white-space: nowrap;
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease;
+}
+
+/* Edit button hover */
+.connect-owner-actions button:hover:not(:disabled) {
+  background: rgba(119, 112, 255, 0.18);
+  border-color: #7770ff;
+  color: #c3bfff;
+}
+
+/* Delete button */
+.connect-owner-actions .connect-delete-button {
+  color: #ff9292;
+  border-color: rgba(255, 100, 100, 0.25);
+  background: rgba(255, 100, 100, 0.08);
+}
+
+/* Delete button hover */
+.connect-owner-actions .connect-delete-button:hover:not(:disabled) {
+  background: rgba(255, 100, 100, 0.16);
+  border-color: #ff7070;
+  color: #ffb0b0;
+}
+
+/* Disabled buttons */
+.connect-owner-actions button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ========================================
+   RESPONSIVE DESIGN
+======================================== */
+
+@media (max-width: 600px) {
+  .connect-post-top {
+    flex-wrap: wrap;
+  }
+
+  .connect-owner-actions {
+    width: 100%;
+    margin-left: 50px;
+    margin-top: 8px;
+  }
+
+  .connect-owner-actions button {
+    padding: 7px 11px;
+    font-size: 11px;
+  }
+}
