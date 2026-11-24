@@ -63,6 +63,27 @@ const dashboardSchema = new mongoose.Schema(
   { _id: false }
 );
 
+const budgetSchema = new mongoose.Schema(
+  {
+    amount: {
+      type: Number,
+      default: null,
+      min: 0,
+    },
+    currency: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    period: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+  },
+  { _id: false }
+);
+
 const userSchema = new mongoose.Schema(
   {
     fullName: {
@@ -99,6 +120,25 @@ const userSchema = new mongoose.Schema(
     year: { type: String, default: "" },
     interests: { type: [String], default: [] },
     skills: { type: [String], default: [] },
+
+    // University matching preferences
+    preferredCountries: {
+      type: [String],
+      default: [],
+    },
+    preferredStudyLevel: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    budget: {
+      type: budgetSchema,
+      default: () => ({}),
+    },
+    scholarshipRequired: {
+      type: Boolean,
+      default: false,
+    },
 
     // Each user gets an independent dashboard.
     dashboard: {
