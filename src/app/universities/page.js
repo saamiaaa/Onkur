@@ -1,6 +1,7 @@
 
 "use client";
 
+import "./universities.css";
 import { getCareersForUniversity } from "../data/careerLinks";
 import { getUniversityMatches } from "../data/universityMatching";
 import { useEffect, useMemo, useState } from "react";
