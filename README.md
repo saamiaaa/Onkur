@@ -244,7 +244,14 @@ Open the application at:
 
 
 
-## 8. API Overview
+## 8. AI Assistants & API Overview
+
+AI tools were used throughout the development of Onkur as supportive development assistants.
+
+- **ChatGPT (OpenAI):** Used for coding assistance, debugging, troubleshooting, understanding technical concepts, refining code, and guidance during frontend and backend development.
+- **Google Gemini:** Used for AI-powered features within the application, including student profile analysis and other AI-assisted functionalities.
+
+All implementation decisions, feature integrations, testing, and project development were reviewed and carried out by the developer. AI tools served as assistants rather than replacements for the development process.
 
 The backend exposes the following API route groups:
 
