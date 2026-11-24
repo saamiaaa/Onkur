@@ -23,6 +23,19 @@ function getCareerName(career) {
   );
 }
 
+function getCurrencySymbol(currency) {
+  const symbols = {
+    BDT: "৳",
+    USD: "US$",
+    CAD: "C$",
+    SGD: "S$",
+    AUD: "A$",
+    GBP: "£",
+  };
+
+  return symbols[currency] || `${currency || ""} `;
+}
+
 export default function UniversitiesPage() {
   const [search, setSearch] = useState("");
   const [country, setCountry] = useState("All");
@@ -94,8 +107,7 @@ export default function UniversitiesPage() {
         const dashboardData = await dashboardResponse.json();
         const dashboard = dashboardData.dashboard || {};
 
-        const savedUniversities =
-          dashboard.universities || [];
+        const savedUniversities = dashboard.universities || [];
 
         const savedIds = savedUniversities
           .map((university) => {
@@ -148,7 +160,6 @@ export default function UniversitiesPage() {
   }
 
   // PERSONALIZED UNIVERSITY MATCHES
-  // ONLY HIGH-SCHOOL STUDENTS RECEIVE UNIVERSITY RECOMMENDATIONS
   const shouldShowRecommendations =
     isAuthenticated &&
     studentProfile?.educationLevel === "high_school";
@@ -337,10 +348,6 @@ export default function UniversitiesPage() {
     setSort("az");
   }
 
-  const savedUniversities = universities.filter((uni) =>
-    saved.includes(uni.id)
-  );
-
   const comparedUniversities = universities.filter((uni) =>
     compare.includes(uni.id)
   );
@@ -399,7 +406,6 @@ export default function UniversitiesPage() {
       {/* EXPLORER */}
       <section className="explorer-section">
         <div className="container">
-
           {/* PERSONALIZED RECOMMENDATIONS */}
           {shouldShowRecommendations && !isLoadingSaved && (
             <section style={{ marginBottom: "55px" }}>
@@ -595,11 +601,7 @@ export default function UniversitiesPage() {
             </button>
           </div>
 
-          {saveError && (
-            <div className="save-error">
-              {saveError}
-            </div>
-          )}
+          {saveError && <div className="save-error">{saveError}</div>}
 
           {!isAuthenticated && !isLoadingSaved && (
             <div className="directory-note">
@@ -914,6 +916,7 @@ export default function UniversitiesPage() {
               associated with this university.
             </p>
 
+            {/* BASIC INFORMATION */}
             <div className="modal-info-grid">
               <div>
                 <span>University type</span>
@@ -928,6 +931,7 @@ export default function UniversitiesPage() {
               </div>
             </div>
 
+            {/* STUDY LEVELS */}
             <div className="modal-subjects">
               <span>Available study levels</span>
 
@@ -946,6 +950,7 @@ export default function UniversitiesPage() {
               </div>
             </div>
 
+            {/* SUBJECTS */}
             <div className="modal-subjects">
               <span>Subjects</span>
 
@@ -964,15 +969,136 @@ export default function UniversitiesPage() {
               </div>
             </div>
 
+            {/* TUITION AND BUDGET */}
             <div className="official-info-note">
-              <strong>Admission information</strong>
+              <strong>Tuition & Budget</strong>
+
+              {selected.budget?.amount !== null &&
+                selected.budget?.amount !== undefined && (
+                  <p style={{ marginTop: "10px", marginBottom: "8px" }}>
+                    <strong
+                      style={{
+                        color: "var(--yellow, #f8d943)",
+                        fontSize: "18px",
+                      }}
+                    >
+                      {getCurrencySymbol(selected.budget.currency)}
+                      {Number(selected.budget.amount).toLocaleString()}
+                    </strong>
+                    {" "}
+                    <span>{selected.budget.period || ""}</span>
+                  </p>
+                )}
+
               <p>
-                Admission requirements and application deadlines can
-                change. Visit the university's official website to
-                verify the latest information.
+                {selected.budget?.summary ||
+                  "Tuition information is not currently available. Please check the official university fee page."}
               </p>
+
+              {selected.budget?.studentCategory && (
+                <p style={{ marginTop: "8px", fontSize: "12px" }}>
+                  Student category: {selected.budget.studentCategory}
+                </p>
+              )}
+
+              {selected.dataNote && (
+                <p style={{ marginTop: "8px", fontSize: "12px" }}>
+                  Note: {selected.dataNote}
+                </p>
+              )}
             </div>
 
+            {/* SCHOLARSHIPS */}
+            <div className="official-info-note" style={{ marginTop: "16px" }}>
+              <strong>Scholarships & Financial Aid</strong>
+
+              <p style={{ marginTop: "10px" }}>
+                {selected.scholarships?.summary ||
+                  "Scholarship information is not currently available. Check the university's official website."}
+              </p>
+
+              {selected.scholarships?.opportunities?.length > 0 && (
+                <ul
+                  style={{
+                    paddingLeft: "20px",
+                    marginTop: "10px",
+                    lineHeight: "1.8",
+                    color: "var(--muted, #a0a0a0)",
+                  }}
+                >
+                  {selected.scholarships.opportunities.map((item, index) => (
+                    <li key={`${selected.id}-scholarship-${index}`}>
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            {/* OFFICIAL UNIVERSITY LINKS */}
+            <div className="official-info-note" style={{ marginTop: "16px" }}>
+              <strong>Official University Links</strong>
+
+              <p style={{ marginTop: "8px" }}>
+                Visit these official pages to verify current admission
+                requirements, tuition fees, and scholarship eligibility.
+              </p>
+
+              <div
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: "10px",
+                  marginTop: "14px",
+                }}
+              >
+                {selected.website && (
+                  <a
+                    href={selected.website}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="reset-button"
+                  >
+                    University Website ↗
+                  </a>
+                )}
+
+                {selected.officialLinks?.tuition && (
+                  <a
+                    href={selected.officialLinks.tuition}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="reset-button"
+                  >
+                    Tuition & Fees ↗
+                  </a>
+                )}
+
+                {selected.officialLinks?.scholarships && (
+                  <a
+                    href={selected.officialLinks.scholarships}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="reset-button"
+                  >
+                    Scholarships ↗
+                  </a>
+                )}
+
+                {selected.officialLinks?.admission && (
+                  <a
+                    href={selected.officialLinks.admission}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="reset-button"
+                  >
+                    Admissions ↗
+                  </a>
+                )}
+              </div>
+            </div>
+
+            {/* UNIVERSITY ACTIONS */}
             <div className="modal-actions">
               <button
                 className="details-button"
@@ -994,6 +1120,7 @@ export default function UniversitiesPage() {
               </button>
             </div>
 
+            {/* RELATED CAREERS */}
             <div className="modal-subjects">
               <span>Related career paths</span>
 
