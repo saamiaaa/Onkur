@@ -84,3 +84,155 @@
     font-size: 11px;
   }
 }
+
+
+/* ========================================
+   EDIT POST FORM
+======================================== */
+
+.connect-edit-form {
+  margin-top: 20px;
+  padding: 22px;
+  border: 1px solid rgba(119, 112, 255, 0.25);
+  border-radius: 14px;
+  background: rgba(119, 112, 255, 0.045);
+}
+
+.connect-edit-form h3 {
+  margin: 0 0 20px;
+  color: #f1f0eb;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.connect-edit-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  margin-bottom: 18px;
+  color: #c9c7d8;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.connect-edit-form input,
+.connect-edit-form textarea,
+.connect-edit-form select {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 9px;
+  outline: none;
+  background: #171821;
+  color: #f1f0eb;
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.6;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.connect-edit-form input {
+  min-height: 43px;
+}
+
+.connect-edit-form textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.connect-edit-form select {
+  min-height: 43px;
+  cursor: pointer;
+}
+
+.connect-edit-form input:focus,
+.connect-edit-form textarea:focus,
+.connect-edit-form select:focus {
+  border-color: #7770ff;
+  box-shadow: 0 0 0 3px rgba(119, 112, 255, 0.12);
+}
+
+.connect-edit-form input::placeholder,
+.connect-edit-form textarea::placeholder {
+  color: #777787;
+}
+
+.connect-edit-form .connect-composer-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.connect-edit-form .connect-composer-bottom > span {
+  color: #858496;
+  font-size: 11px;
+}
+
+.connect-edit-form .connect-composer-bottom > div {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.connect-edit-form .connect-cancel-button,
+.connect-edit-form .connect-publish-button {
+  padding: 9px 15px;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.connect-edit-form .connect-cancel-button {
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  background: transparent;
+  color: #c4c2d0;
+}
+
+.connect-edit-form .connect-cancel-button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+  color: white;
+}
+
+.connect-edit-form .connect-publish-button {
+  border: 1px solid #7770ff;
+  background: #7770ff;
+  color: white;
+}
+
+.connect-edit-form .connect-publish-button:hover:not(:disabled) {
+  background: #625be8;
+  border-color: #625be8;
+}
+
+.connect-edit-form button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Mobile */
+@media (max-width: 480px) {
+  .connect-edit-form {
+    padding: 16px;
+  }
+
+  .connect-edit-form .connect-composer-bottom {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .connect-edit-form .connect-composer-bottom > div {
+    width: 100%;
+  }
+
+  .connect-edit-form .connect-composer-bottom button {
+    flex: 1;
+  }
+}
