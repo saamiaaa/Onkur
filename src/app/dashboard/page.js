@@ -14,6 +14,14 @@ const defaultProfile = {
   degree: "Degree not added",
   year: "Year not added",
   interests: [],
+  preferredCountries: [],
+  preferredStudyLevel: "",
+  budget: {
+    amount: "",
+    currency: "BDT",
+    period: "Annual",
+  },
+  scholarshipRequired: false,
 };
 
 const initialTasks = [
@@ -166,6 +174,34 @@ const destinationLinks = [
   },
 ];
 
+const fieldStyle = {
+  width: "100%",
+  padding: "11px 12px",
+  marginTop: 8,
+  border: "1px solid var(--border)",
+  borderRadius: 8,
+  background: "rgba(255,255,255,0.03)",
+  color: "var(--foreground)",
+  fontSize: 13,
+  outline: "none",
+};
+
+const countries = [
+  "Bangladesh",
+  "United States",
+  "United Kingdom",
+  "Canada",
+  "Australia",
+  "Germany",
+  "Malaysia",
+  "Singapore",
+  "Japan",
+  "South Korea",
+  "Netherlands",
+  "Sweden",
+  "Other",
+];
+
 export default function DashboardPage() {
   const router = useRouter();
 
@@ -174,6 +210,7 @@ export default function DashboardPage() {
   const [profileDraft, setProfileDraft] = useState({
     ...defaultProfile,
     interestsText: "",
+    preferredCountriesText: "",
   });
 
   const [tasks, setTasks] = useState(initialTasks);
@@ -239,6 +276,16 @@ export default function DashboardPage() {
           degree: user.degree || "",
           year: user.year || "",
           interests: Array.isArray(user.interests) ? user.interests : [],
+          preferredCountries: Array.isArray(user.preferredCountries)
+            ? user.preferredCountries
+            : [],
+          preferredStudyLevel: user.preferredStudyLevel || "",
+          budget: {
+            amount: user.budget?.amount ?? "",
+            currency: user.budget?.currency || "BDT",
+            period: user.budget?.period || "Annual",
+          },
+          scholarshipRequired: user.scholarshipRequired === true,
         };
 
         setProfile(loadedProfile);
@@ -246,6 +293,8 @@ export default function DashboardPage() {
         setProfileDraft({
           ...loadedProfile,
           interestsText: loadedProfile.interests.join(", "),
+          preferredCountriesText:
+            loadedProfile.preferredCountries.join(", "),
         });
 
         setTasks(
@@ -326,12 +375,50 @@ export default function DashboardPage() {
     setProfileMessage("");
   }
 
+  function handleBudgetChange(event) {
+    const { name, value } = event.target;
+
+    setProfileDraft((previous) => ({
+      ...previous,
+      budget: {
+        ...previous.budget,
+        [name]: value,
+      },
+    }));
+
+    setProfileMessage("");
+  }
+
+  function handleScholarshipChange(event) {
+    setProfileDraft((previous) => ({
+      ...previous,
+      scholarshipRequired: event.target.checked,
+    }));
+
+    setProfileMessage("");
+  }
+
   async function handleProfileSave(event) {
     event.preventDefault();
 
     setIsSavingProfile(true);
     setSaveError("");
     setProfileMessage("");
+
+    const budgetAmount =
+      profileDraft.budget.amount === "" ||
+      profileDraft.budget.amount === null
+        ? null
+        : Number(profileDraft.budget.amount);
+
+    if (
+      budgetAmount !== null &&
+      (!Number.isFinite(budgetAmount) || budgetAmount < 0)
+    ) {
+      setSaveError("Please enter a valid tuition budget.");
+      setIsSavingProfile(false);
+      return;
+    }
 
     const updatedProfile = {
       fullName: profileDraft.full_name.trim(),
@@ -342,6 +429,21 @@ export default function DashboardPage() {
         .split(",")
         .map((interest) => interest.trim())
         .filter(Boolean),
+
+      preferredCountries: profileDraft.preferredCountriesText
+        .split(",")
+        .map((country) => country.trim())
+        .filter(Boolean),
+
+      preferredStudyLevel: profileDraft.preferredStudyLevel,
+
+      budget: {
+        amount: budgetAmount,
+        currency: profileDraft.budget.currency,
+        period: profileDraft.budget.period,
+      },
+
+      scholarshipRequired: profileDraft.scholarshipRequired,
     };
 
     try {
@@ -375,6 +477,19 @@ export default function DashboardPage() {
         interests: Array.isArray(user.interests)
           ? user.interests
           : updatedProfile.interests,
+        preferredCountries: Array.isArray(user.preferredCountries)
+          ? user.preferredCountries
+          : updatedProfile.preferredCountries,
+        preferredStudyLevel:
+          user.preferredStudyLevel || updatedProfile.preferredStudyLevel,
+        budget: {
+          amount: user.budget?.amount ?? updatedProfile.budget.amount ?? "",
+          currency:
+            user.budget?.currency || updatedProfile.budget.currency,
+          period: user.budget?.period || updatedProfile.budget.period,
+        },
+        scholarshipRequired:
+          user.scholarshipRequired ?? updatedProfile.scholarshipRequired,
       };
 
       setProfile(savedProfile);
@@ -382,6 +497,8 @@ export default function DashboardPage() {
       setProfileDraft({
         ...savedProfile,
         interestsText: savedProfile.interests.join(", "),
+        preferredCountriesText:
+          savedProfile.preferredCountries.join(", "),
       });
 
       setProfileMessage("Your profile has been saved successfully.");
@@ -860,6 +977,74 @@ export default function DashboardPage() {
                 )}
               </div>
             </div>
+
+            <div style={{ marginTop: 18 }}>
+              <p className="dashboard-eyebrow">UNIVERSITY PREFERENCES</p>
+              <div
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: 8,
+                  marginTop: 8,
+                }}
+              >
+                {profile.preferredCountries.length > 0 ? (
+                  profile.preferredCountries.map((country) => (
+                    <span
+                      key={country}
+                      style={{
+                        padding: "7px 11px",
+                        borderRadius: 20,
+                        border: "1px solid var(--border)",
+                        color: "var(--foreground)",
+                        fontSize: 11,
+                      }}
+                    >
+                      {country}
+                    </span>
+                  ))
+                ) : (
+                  <span style={{ color: "var(--muted)", fontSize: 12 }}>
+                    No preferred countries added.
+                  </span>
+                )}
+              </div>
+
+              <p
+                style={{
+                  color: "var(--muted)",
+                  fontSize: 12,
+                  marginTop: 10,
+                }}
+              >
+                Study level: {profile.preferredStudyLevel || "Not specified"}
+              </p>
+
+              <p
+                style={{
+                  color: "var(--muted)",
+                  fontSize: 12,
+                  marginTop: 6,
+                }}
+              >
+                Tuition budget:{" "}
+                {profile.budget.amount !== "" &&
+                profile.budget.amount !== null
+                  ? `${profile.budget.amount} ${profile.budget.currency} (${profile.budget.period})`
+                  : "Not specified"}
+              </p>
+
+              <p
+                style={{
+                  color: "var(--muted)",
+                  fontSize: 12,
+                  marginTop: 6,
+                }}
+              >
+                Scholarship needed:{" "}
+                {profile.scholarshipRequired ? "Yes" : "No"}
+              </p>
+            </div>
           </section>
 
           {/* PROFILE SETTINGS */}
@@ -952,6 +1137,177 @@ export default function DashboardPage() {
                     placeholder="e.g. Web Development, AI, UI/UX, Robotics"
                   />
                   <small>Separate each interest with a comma.</small>
+                </label>
+              </div>
+
+              {/* UNIVERSITY MATCHING PREFERENCES */}
+              <div
+                style={{
+                  marginTop: 30,
+                  paddingTop: 24,
+                  borderTop: "1px solid var(--border)",
+                }}
+              >
+                <p className="dashboard-eyebrow">UNIVERSITY MATCHING</p>
+
+                <h3
+                  style={{
+                    color: "var(--foreground)",
+                    fontSize: 17,
+                    marginTop: 7,
+                    marginBottom: 8,
+                  }}
+                >
+                  What are you looking for?
+                </h3>
+
+                <p
+                  style={{
+                    color: "var(--muted)",
+                    fontSize: 12,
+                    lineHeight: 1.7,
+                    marginBottom: 18,
+                  }}
+                >
+                  These preferences help Onkur recommend universities that
+                  better match your study plans and financial situation.
+                </p>
+
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                    gap: 16,
+                  }}
+                >
+                  <label
+                    className="dashboard-profile-field"
+                    style={{ gridColumn: "1 / -1" }}
+                  >
+                    <span>Preferred countries</span>
+                    <input
+                      type="text"
+                      name="preferredCountriesText"
+                      value={profileDraft.preferredCountriesText}
+                      onChange={handleProfileChange}
+                      placeholder="e.g. Canada, Australia, Germany"
+                      style={fieldStyle}
+                    />
+                    <small>
+                      Enter countries separated by commas. Leave empty if
+                      you're open to studying anywhere.
+                    </small>
+                  </label>
+
+                  <label className="dashboard-profile-field">
+                    <span>Preferred study level</span>
+                    <select
+                      name="preferredStudyLevel"
+                      value={profileDraft.preferredStudyLevel}
+                      onChange={handleProfileChange}
+                      style={fieldStyle}
+                    >
+                      <option value="">No preference</option>
+                      <option value="Undergraduate">Undergraduate</option>
+                      <option value="Postgraduate">Postgraduate</option>
+                      <option value="Doctorate">Doctorate</option>
+                    </select>
+                  </label>
+
+                  <label className="dashboard-profile-field">
+                    <span>Tuition budget</span>
+                    <input
+                      type="number"
+                      name="amount"
+                      min="0"
+                      step="any"
+                      value={profileDraft.budget.amount}
+                      onChange={handleBudgetChange}
+                      placeholder="e.g. 10000"
+                      style={fieldStyle}
+                    />
+                    <small>
+                      Enter your maximum tuition budget. Leave empty if
+                      undecided.
+                    </small>
+                  </label>
+
+                  <label className="dashboard-profile-field">
+                    <span>Budget currency</span>
+                    <select
+                      name="currency"
+                      value={profileDraft.budget.currency}
+                      onChange={handleBudgetChange}
+                      style={fieldStyle}
+                    >
+                      <option value="BDT">BDT – Bangladeshi Taka</option>
+                      <option value="USD">USD – US Dollar</option>
+                      <option value="CAD">CAD – Canadian Dollar</option>
+                      <option value="AUD">AUD – Australian Dollar</option>
+                      <option value="GBP">GBP – British Pound</option>
+                      <option value="EUR">EUR – Euro</option>
+                      <option value="SGD">SGD – Singapore Dollar</option>
+                      <option value="MYR">MYR – Malaysian Ringgit</option>
+                      <option value="JPY">JPY – Japanese Yen</option>
+                    </select>
+                  </label>
+
+                  <label className="dashboard-profile-field">
+                    <span>Budget period</span>
+                    <select
+                      name="period"
+                      value={profileDraft.budget.period}
+                      onChange={handleBudgetChange}
+                      style={fieldStyle}
+                    >
+                      <option value="Annual">Per year</option>
+                      <option value="First year">First year</option>
+                      <option value="Per semester">Per semester</option>
+                      <option value="Per credit">Per credit</option>
+                      <option value="Total programme">Total programme</option>
+                    </select>
+                  </label>
+                </div>
+
+                <label
+                  style={{
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: 11,
+                    marginTop: 22,
+                    cursor: "pointer",
+                    color: "var(--foreground)",
+                    fontSize: 13,
+                    lineHeight: 1.6,
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={profileDraft.scholarshipRequired}
+                    onChange={handleScholarshipChange}
+                    style={{
+                      width: 16,
+                      height: 16,
+                      marginTop: 2,
+                      accentColor: "var(--yellow)",
+                      flexShrink: 0,
+                    }}
+                  />
+
+                  <span>
+                    <strong>I need scholarship or financial aid.</strong>
+                    <small
+                      style={{
+                        display: "block",
+                        color: "var(--muted)",
+                        fontSize: 11,
+                        marginTop: 3,
+                      }}
+                    >
+                      Prioritize universities with listed scholarship
+                      opportunities when recommending options.
+                    </small>
+                  </span>
                 </label>
               </div>
 
