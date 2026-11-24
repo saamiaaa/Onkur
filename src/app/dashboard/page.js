@@ -692,9 +692,9 @@ export default function DashboardPage() {
       <section className="dashboard-main">
         <header className="dashboard-topbar">
           <div className="dashboard-breadcrumb">
-            <span>Workspace</span>
-            <span>/</span>
-            <strong>Overview</strong>
+          <Link href="/connect">Home</Link>
+          <span>/</span>
+        <strong>Overview</strong>
           </div>
 
           <div className="dashboard-topbar-right">
