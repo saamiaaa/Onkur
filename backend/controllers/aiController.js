@@ -2,6 +2,9 @@
 const { GoogleGenAI } = require("@google/genai");
 const User = require("../models/User");
 
+const PRIMARY_MODEL = "gemini-3.8-flash";
+const FALLBACK_MODEL = "gemini-3.5-flash-lite";
+
 const getAI = () => {
   if (!process.env.GEMINI_API_KEY) {
     throw new Error("Gemini API key is missing from backend/.env");
@@ -10,6 +13,83 @@ const getAI = () => {
   return new GoogleGenAI({
     apiKey: process.env.GEMINI_API_KEY,
   });
+};
+
+// Extract error details from different SDK error formats.
+const getErrorDetails = (error) => {
+  const message =
+    error?.message ||
+    error?.error?.message ||
+    "Unknown Gemini error";
+
+  const code =
+    error?.code ||
+    error?.error?.code ||
+    error?.status ||
+    error?.error?.status ||
+    "";
+
+  return {
+    message,
+    code: String(code).toLowerCase(),
+    status: error?.status || error?.error?.status || null,
+  };
+};
+
+// Use a fallback model if the primary model is temporarily unavailable.
+const generateWithFallback = async (prompt) => {
+  const ai = getAI();
+
+  try {
+    const response = await ai.interactions.create({
+      model: PRIMARY_MODEL,
+      input: prompt,
+    });
+
+    if (!response.output_text) {
+      throw new Error("Gemini returned an empty response.");
+    }
+
+    return response.output_text;
+  } catch (primaryError) {
+    const details = getErrorDetails(primaryError);
+
+    const temporaryFailure =
+      details.status === 429 ||
+      details.status === 503 ||
+      details.code.includes("503") ||
+      details.code.includes("429") ||
+      details.code.includes("service_unavailable") ||
+      details.code.includes("resource_exhausted") ||
+      details.message.toLowerCase().includes("high demand") ||
+      details.message.toLowerCase().includes("overloaded");
+
+    if (!temporaryFailure) {
+      throw primaryError;
+    }
+
+    console.warn(
+      `${PRIMARY_MODEL} is temporarily unavailable. Trying ${FALLBACK_MODEL}.`
+    );
+
+    try {
+      const fallbackResponse = await ai.interactions.create({
+        model: FALLBACK_MODEL,
+        input: prompt,
+      });
+
+      if (!fallbackResponse.output_text) {
+        throw new Error("Fallback Gemini model returned an empty response.");
+      }
+
+      console.log(`Gemini fallback successful: ${FALLBACK_MODEL}`);
+
+      return fallbackResponse.output_text;
+    } catch (fallbackError) {
+      console.error("Gemini fallback failed:", fallbackError);
+      throw fallbackError;
+    }
+  }
 };
 
 // ------------------------------------
@@ -97,23 +177,18 @@ Provide 3 to 5 useful items per list when possible.
 Do not make unsupported assumptions.
 `;
 
-    const ai = getAI();
-
-    const response = await ai.interactions.create({
-      model: "gemini-3.8-flash",
-      input: prompt,
-    });
-
-    const responseText = response.output_text;
-
-    if (!responseText) {
-      throw new Error("Gemini returned an empty response.");
-    }
+    const responseText = await generateWithFallback(prompt);
 
     let analysis;
 
     try {
-      analysis = JSON.parse(responseText);
+      const cleanedResponse = responseText
+        .replace(/^```json\s*/i, "")
+        .replace(/^```\s*/i, "")
+        .replace(/\s*```$/, "")
+        .trim();
+
+      analysis = JSON.parse(cleanedResponse);
     } catch (error) {
       console.error("Gemini JSON parsing error:", responseText);
       throw new Error("Gemini returned an invalid JSON response.");
@@ -124,21 +199,20 @@ Do not make unsupported assumptions.
       message: "Your profile analysis is ready.",
       analysis,
     });
-
   } catch (error) {
     console.error("Onkur profile analysis error:", error);
 
-    if (error.status === 429) {
-      return res.status(429).json({
-        success: false,
-        message: "AI usage limit reached. Please try again later.",
-      });
-    }
+    const details = getErrorDetails(error);
 
-    if (error.status === 503) {
+    if (
+      details.status === 429 ||
+      details.status === 503 ||
+      details.code.includes("service_unavailable") ||
+      details.code.includes("resource_exhausted")
+    ) {
       return res.status(503).json({
         success: false,
-        message: "Our AI assistant is currently busy. Please try again shortly.",
+        message: "Both AI models are temporarily unavailable. Please try again shortly.",
       });
     }
 
@@ -146,8 +220,8 @@ Do not make unsupported assumptions.
       success: false,
       message: "Unable to analyze your profile.",
       ...(process.env.NODE_ENV !== "production" && {
-        debug: error.message,
-        errorStatus: error.status || null,
+        debug: details.message,
+        errorStatus: details.status,
       }),
     });
   }
@@ -168,7 +242,6 @@ const chatAssistant = async (req, res) => {
       });
     }
 
-    // Keep only recent, valid messages.
     const validMessages = messages
       .filter(
         (message) =>
@@ -266,38 +339,26 @@ ${conversation}
 Reply as Onkur AI Assistant.
 `;
 
-    const ai = getAI();
-
-    const response = await ai.interactions.create({
-      model: "gemini-3.8-flash",
-      input: prompt,
-    });
-
-    const reply = response.output_text;
-
-    if (!reply || !reply.trim()) {
-      throw new Error("Gemini returned an empty response.");
-    }
+    const reply = await generateWithFallback(prompt);
 
     return res.status(200).json({
       success: true,
       reply: reply.trim(),
     });
-
   } catch (error) {
     console.error("Onkur AI Assistant error:", error);
 
-    if (error.status === 429) {
-      return res.status(429).json({
-        success: false,
-        message: "AI usage limit reached. Please try again later.",
-      });
-    }
+    const details = getErrorDetails(error);
 
-    if (error.status === 503) {
+    if (
+      details.status === 429 ||
+      details.status === 503 ||
+      details.code.includes("service_unavailable") ||
+      details.code.includes("resource_exhausted")
+    ) {
       return res.status(503).json({
         success: false,
-        message: "Onkur AI is currently busy. Please try again in a moment.",
+        message: "Both AI models are temporarily unavailable. Please try again shortly.",
       });
     }
 
@@ -305,8 +366,8 @@ Reply as Onkur AI Assistant.
       success: false,
       message: "Unable to connect to Onkur AI right now.",
       ...(process.env.NODE_ENV !== "production" && {
-        debug: error.message,
-        errorStatus: error.status || null,
+        debug: details.message,
+        errorStatus: details.status,
       }),
     });
   }
