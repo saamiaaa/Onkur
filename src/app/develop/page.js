@@ -1,6 +1,7 @@
 
 "use client";
 
+import DevelopHero from "./DevelopHero";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -346,64 +347,7 @@ export default function DevelopPage() {
         </div>
       </header>
 
-      <section className="container develop-hero">
-        <div className="develop-hero-content">
-          <div className="eyebrow">YOUR GROWTH STARTS HERE</div>
-          <h1>
-            Turn your goals
-            <br />
-            into <span>real skills.</span>
-          </h1>
-          <p>
-            Discover what to learn, build practical projects and make
-            steady progress towards the future you want.
-          </p>
-
-          <div className="develop-hero-actions">
-            <a href="#learning-paths" className="primary-button">
-              Build my roadmap ↗
-            </a>
-            <Link href="/careers" className="secondary-button">
-              Explore career paths
-            </Link>
-          </div>
-        </div>
-
-        <div className="develop-hero-visual">
-          <div className="develop-visual-orbit orbit-a">
-            <span />
-          </div>
-          <div className="develop-visual-orbit orbit-b">
-            <span />
-          </div>
-          <div className="develop-visual-glow" />
-          <div className="develop-visual-center">
-            <span>✳</span>
-            <small>GROW</small>
-          </div>
-          <div className="develop-float-card develop-float-one">
-            <span>🎯</span>
-            <div>
-              <strong>Set a direction</strong>
-              <small>Choose your career goal</small>
-            </div>
-          </div>
-          <div className="develop-float-card develop-float-two">
-            <span>📚</span>
-            <div>
-              <strong>Learn something</strong>
-              <small>One skill at a time</small>
-            </div>
-          </div>
-          <div className="develop-float-card develop-float-three">
-            <span>🚀</span>
-            <div>
-              <strong>Build your future</strong>
-              <small>Turn skills into projects</small>
-            </div>
-          </div>
-        </div>
-      </section>
+      <DevelopHero />
 
       {isLoadingProgress && (
         <div
