@@ -295,7 +295,7 @@ The project is structured for separate frontend and backend deployment:
 - **Backend:** Render
 - **Database:** MongoDB Atlas
 
-Live: 
+Live: https://onkur-plum.vercel.app/
 
 
 
