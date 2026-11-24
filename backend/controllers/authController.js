@@ -19,6 +19,27 @@ const cookieOptions = {
   maxAge: 7 * 24 * 60 * 60 * 1000,
 };
 
+// Reusable user response
+const getUserData = (user) => ({
+  id: user._id,
+  fullName: user.fullName,
+  email: user.email,
+  educationLevel: user.educationLevel,
+  university: user.university,
+  degree: user.degree,
+  year: user.year,
+  interests: user.interests,
+  skills: user.skills,
+  preferredCountries: user.preferredCountries || [],
+  preferredStudyLevel: user.preferredStudyLevel || "",
+  budget: user.budget || {
+    amount: null,
+    currency: "",
+    period: "",
+  },
+  scholarshipRequired: user.scholarshipRequired || false,
+});
+
 // Send token through secure cookie
 const sendToken = (user, statusCode, res) => {
   const token = generateToken(user._id);
@@ -31,17 +52,7 @@ const sendToken = (user, statusCode, res) => {
       statusCode === 201
         ? "Account created successfully!"
         : "Login successful!",
-    user: {
-      id: user._id,
-      fullName: user.fullName,
-      email: user.email,
-      educationLevel: user.educationLevel,
-      university: user.university,
-      degree: user.degree,
-      year: user.year,
-      interests: user.interests,
-      skills: user.skills,
-    },
+    user: getUserData(user),
   });
 };
 
@@ -193,9 +204,11 @@ const getMe = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      user,
+      user: getUserData(user),
     });
   } catch (error) {
+    console.error("Get profile error:", error.message);
+
     res.status(500).json({
       success: false,
       message: "Unable to fetch your profile.",
@@ -222,10 +235,17 @@ const updateProfile = async (req, res) => {
       degree,
       year,
       interests,
+      preferredCountries,
+      preferredStudyLevel,
+      budget,
+      scholarshipRequired,
     } = req.body;
 
     if (fullName !== undefined) {
-      if (typeof fullName !== "string" || fullName.trim().length < 2) {
+      if (
+        typeof fullName !== "string" ||
+        fullName.trim().length < 2
+      ) {
         return res.status(400).json({
           success: false,
           message: "Please enter a valid full name.",
@@ -272,22 +292,100 @@ const updateProfile = async (req, res) => {
         .filter(Boolean);
     }
 
+    // Preferred countries
+    if (preferredCountries !== undefined) {
+      if (
+        !Array.isArray(preferredCountries) ||
+        !preferredCountries.every(
+          (country) => typeof country === "string"
+        )
+      ) {
+        return res.status(400).json({
+          success: false,
+          message: "Preferred countries must be a list of names.",
+        });
+      }
+
+      user.preferredCountries = [
+        ...new Set(
+          preferredCountries
+            .map((country) => country.trim())
+            .filter(Boolean)
+        ),
+      ];
+    }
+
+    // Preferred study level
+    if (preferredStudyLevel !== undefined) {
+      if (typeof preferredStudyLevel !== "string") {
+        return res.status(400).json({
+          success: false,
+          message: "Please select a valid study level.",
+        });
+      }
+
+      user.preferredStudyLevel = preferredStudyLevel.trim();
+    }
+
+    // Tuition budget
+    if (budget !== undefined) {
+      if (
+        !budget ||
+        typeof budget !== "object" ||
+        Array.isArray(budget)
+      ) {
+        return res.status(400).json({
+          success: false,
+          message: "Please provide a valid budget.",
+        });
+      }
+
+      const amount =
+        budget.amount === "" || budget.amount === null
+          ? null
+          : Number(budget.amount);
+
+      if (
+        amount !== null &&
+        (!Number.isFinite(amount) || amount < 0)
+      ) {
+        return res.status(400).json({
+          success: false,
+          message: "Budget must be a valid non-negative number.",
+        });
+      }
+
+      user.budget = {
+        amount,
+        currency:
+          typeof budget.currency === "string"
+            ? budget.currency.trim()
+            : "",
+        period:
+          typeof budget.period === "string"
+            ? budget.period.trim()
+            : "",
+      };
+    }
+
+    // Scholarship requirement
+    if (scholarshipRequired !== undefined) {
+      if (typeof scholarshipRequired !== "boolean") {
+        return res.status(400).json({
+          success: false,
+          message: "Scholarship preference must be true or false.",
+        });
+      }
+
+      user.scholarshipRequired = scholarshipRequired;
+    }
+
     await user.save();
 
     res.status(200).json({
       success: true,
       message: "Your profile has been updated successfully.",
-      user: {
-        id: user._id,
-        fullName: user.fullName,
-        email: user.email,
-        educationLevel: user.educationLevel,
-        university: user.university,
-        degree: user.degree,
-        year: user.year,
-        interests: user.interests,
-        skills: user.skills,
-      },
+      user: getUserData(user),
     });
   } catch (error) {
     console.error("Profile update error:", error.message);
